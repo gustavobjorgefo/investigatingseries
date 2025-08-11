@@ -108,15 +108,15 @@ def calculate_logreturns(
     # Compute log returns (rounded to 8 decimal places)
     dataframe["log_return"] = np.log(
         dataframe["close"] / dataframe["close"].shift(1)
-    ).round(8)
+    ).round(6)
 
     dataframe["co_log_return"] = np.log(
         dataframe["open"] / dataframe["close"].shift(1)
-    ).round(8)
+    ).round(6)
 
     dataframe["oc_log_return"] = np.log(
         dataframe["close"] / dataframe["open"]
-    ).round(8)
+    ).round(6)
 
     if vol:
         # Rolling annualized volatility (252 trading days/year)
@@ -125,17 +125,17 @@ def calculate_logreturns(
             dataframe["co_log_return"]
             .rolling(vol_window)
             .std() * annualization_factor
-        )
+        ).round(6)
         dataframe["vol_oc"] = (
             dataframe["oc_log_return"]
             .rolling(vol_window)
             .std() * annualization_factor
-        )
+        ).round(6)
         dataframe["vol_return"] = (
             dataframe["log_return"]
             .rolling(vol_window)
             .std() * annualization_factor
-        )
+        ).round(6)
 
     # Remove rows with NaN values caused by rolling calculations
     dataframe = dataframe.dropna()
@@ -210,7 +210,7 @@ def plot_vol(df: pd.DataFrame, color_palette: list[str]) -> None:
 def plot_correlation(
     dataframe: pd.DataFrame,
     windows: list[int] = [10, 21, 63],
-    color: str = "tab:blue"
+    color: str = color_palette[0]
 ) -> None:
     """
     Plot rolling correlation between 'co_log_return' and 'oc_log_return'
@@ -223,7 +223,7 @@ def plot_correlation(
     windows : list of int, optional
         List of window sizes for rolling correlation. Default is [10, 21, 63].
     color : str, optional
-        Line color for the correlation plots. Default is 'tab:blue'.
+        Line color for the correlation plots. Default is 'color_palette[0]'.
 
     Returns
     -------
@@ -310,7 +310,7 @@ def run_strategy(
         subset["co_log_return"]
         .rolling(window)
         .corr(subset["oc_log_return"])
-        .round(8)
+        .round(6)
     )
 
     # Shift to prevent look-ahead bias
@@ -369,6 +369,8 @@ if __name__ == "__main__":
     # Output results
     print(f"Strategy cumulative return: {cumulative_strategy_return:.4f}")
     print(f"Benchmark cumulative return: {benchmark_return:.4f}")
+
+    quit()
 
     # Generate QuantStats performance report
     qs.reports.html(
