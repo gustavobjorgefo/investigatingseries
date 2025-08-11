@@ -49,7 +49,7 @@ Some notebooks may require additional dependencies listed in a `requirements.txt
 
 The full writeups and background theory for each project can be found in the **Investigating Series** on my blog:
 
-👉 [**Visit the blog**](https://yourblogurl.com) *(replace with your actual blog link)*
+👉 [**Visit the blog**](https://substack.com/@gustavojorgefilho/posts) *(replace with your actual blog link)*
 
 ---
 
