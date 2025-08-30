@@ -28,6 +28,7 @@ Each folder corresponds to a specific investigation or topic discussed in the bl
 | Folder | Description |
 |--------|-------------|
 | `vale3_volatility_decomposition` | Decomposing historical volatility of VALE3 and building a trading model based on intraday/overnight return correlations. |
+| `02_vale3_gap_strategy` | Investigation of a correlation gap strategy for VALE3 with dynamic parameter selection and backtesting. |
 | `...` | New studies and strategy prototypes will be added continuously. |
 
 ---
