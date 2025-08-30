@@ -14,7 +14,6 @@ color_palette = [
     "#006E51",    
     "#B43A19",
 ]
-
 plt.rcParams['axes.prop_cycle'] = plt.cycler(color=color_palette)
 plt.rcParams['grid.alpha'] = 0.2
 plt.rcParams['axes.grid'] = True
@@ -265,7 +264,7 @@ def plot_correlation(
     plt.tight_layout()
     plt.show()
 
-def run_strategy(
+def run_plain_strategy(
     data: pd.DataFrame,
     start: str,
     end: str,
@@ -321,14 +320,94 @@ def run_strategy(
 
     # Generate short signals when correlation is high
     high_corr_mask = subset["corr"] > thresh
-    subset.loc[high_corr_mask, "signal"] = -np.sign(subset.loc[high_corr_mask, "co_log_return"])
+    subset.loc[high_corr_mask, "signal"] = np.sign(subset.loc[high_corr_mask, "co_log_return"])
 
     # Generate long signals when correlation is strongly negative
     low_corr_mask = subset["corr"] < -thresh
-    subset.loc[low_corr_mask, "signal"] = np.sign(subset.loc[low_corr_mask, "co_log_return"])
+    subset.loc[low_corr_mask, "signal"] = -np.sign(subset.loc[low_corr_mask, "co_log_return"])
 
     # Strategy returns
     subset["ret"] = subset["signal"] * subset["oc_log_return"]
+
+    # Return strategy returns within the test period
+    return subset.loc[start:end, "ret"]
+
+def run_strategy(
+    data: pd.DataFrame,
+    start: str,
+    end: str,
+    window: int,
+    upper_thresh: float,
+    lower_thresh: float
+) -> pd.Series:
+    """
+    Run a correlation-based trading strategy with asymmetric thresholds.
+
+    Difference from base strategy
+    -----------------------------
+    - The original strategy used a single symmetric threshold (±thresh) to decide signals.  
+    - This version introduces two independent thresholds:
+      * `upper_thresh` for positive correlations.
+      * `lower_thresh` for negative correlations.
+
+    Strategy logic
+    --------------
+    1. Calculate rolling correlation between 'co_log_return' and 'oc_log_return'.
+    2. Shift correlation by one day to avoid look-ahead bias.
+    3. Generate trading signals:
+       - If correlation > upper_thresh → open position opposite to co_log_return.
+       - If correlation < lower_thresh → open position in the same direction as co_log_return.
+       - Otherwise → no position.
+    4. Compute daily strategy returns as signal × open-to-close return.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        DataFrame containing at least 'co_log_return', 'oc_log_return', 'open', and 'close'.
+    start : str
+        Start date for backtest in 'YYYY-MM-DD' format.
+    end : str
+        End date for backtest in 'YYYY-MM-DD' format.
+    window : int
+        Rolling window size for correlation calculation.
+    upper_thresh : float
+        Upper correlation threshold for contrarian signal.
+    lower_thresh : float
+        Lower correlation threshold for aligned signal.
+
+    Returns
+    -------
+    pd.Series
+        Series of strategy returns between the specified dates.
+    """
+    subset = data.copy()
+
+    # Rolling correlation between co and oc returns
+    subset["corr"] = (
+        subset["co_log_return"]
+        .rolling(window)
+        .corr(subset["oc_log_return"])
+        .round(6)
+    )
+
+    subset["open_close_return"] = subset["close"]/subset["open"]-1
+
+    # Shift to prevent look-ahead bias
+    subset["corr"] = subset["corr"].shift(1)
+
+    # Initialize trading signal column
+    subset["signal"] = 0
+
+    # Generate short signals when correlation is high
+    high_corr_mask = subset["corr"] > upper_thresh
+    subset.loc[high_corr_mask, "signal"] = -np.sign(subset.loc[high_corr_mask, "co_log_return"])
+
+    # Generate long signals when correlation is strongly negative
+    low_corr_mask = subset["corr"] < lower_thresh
+    subset.loc[low_corr_mask, "signal"] = np.sign(subset.loc[low_corr_mask, "co_log_return"])
+
+    # Strategy returns
+    subset["ret"] = subset["signal"] * subset["open_close_return"]
 
     # Return strategy returns within the test period
     return subset.loc[start:end, "ret"]
@@ -343,38 +422,124 @@ if __name__ == "__main__":
     df = get_data(ticker, full_start_date, full_end_date)
     df = calculate_logreturns(df, vol=True, vol_window=63)
 
-    # Plot rolling volatilities
-    plot_vol(df, color_palette)  # Pass your color palette list here
-
-    # Plot rolling correlations with different window sizes
-    plot_correlation(df, windows=[21, 63, 126])
-
     # Define strategy evaluation period (subset of full data)
     strat_start_date = "2010-01-01"
     strat_end_date = full_end_date
+    base_index = df.loc[strat_start_date:strat_end_date].index
+    
+    # Set up the baseline strategy with fixed parameters and calculate its cumulative returns
+    plain_window, plain_thresh = 21, 0.25
+    
+    const_window = pd.Series(data=[plain_window]*len(base_index), index=base_index)
+    const_p_thresh = pd.Series(data=[plain_thresh]*len(base_index), index=base_index)
+    const_n_thresh = pd.Series(data=[-plain_thresh]*len(base_index), index=base_index)
 
-    # Run strategy and compute cumulative returns
-    strategy_returns = run_strategy(
-        data=df,
-        start=strat_start_date,
-        end=strat_end_date,
-        window=21,
-        thresh=0.25
-    )
-    cumulative_strategy_return = (1 + strategy_returns).cumprod().iloc[-1] - 1
+    plain_returns = run_strategy(df, strat_start_date, strat_end_date, 21, 0.25, -0.25)
+    plain_cumret = (1+plain_returns).cumprod()
 
-    # Benchmark cumulative return over the same period
-    benchmark_return = (1 + df.loc[strat_start_date:strat_end_date, "log_return"]).cumprod().iloc[-1] - 1
+    # Define parameter grids for dynamic strategy optimization and initialize storage variables
+    window_options=[5, 10, 21, 42, 63]
+    upper_thresh_options=[0.15, 0.25, 0.35, 0.45]
+    lower_thresh_options=[-0.15, -0.25, -0.35, -0.45]
 
-    # Output results
-    print(f"Strategy cumulative return: {cumulative_strategy_return:.4f}")
-    print(f"Benchmark cumulative return: {benchmark_return:.4f}")
+    param_grid = list(product(window_options, upper_thresh_options , lower_thresh_options))
+
+    dynamic_window = None
+    dynamic_p_thresh = None
+    dynamic_n_thresh = None
+    dynamic_strategy_returns = None
+    
+    # Prepare rolling train-test windows for time series cross-validation (3 months train, 1 month test)
+    monthly_dates = df.index.to_period('M').unique()
+
+    for i in range(3, len(monthly_dates)):
+        train_months = monthly_dates[i-3:i]
+        test_month = monthly_dates[i]
+
+        train_start = df[df.index.to_period('M') == train_months[0]].index[0]
+        train_end = df[df.index.to_period('M') == train_months[-1]].index[-1]
+        test_start = df[df.index.to_period('M') == test_month].index[0]
+        test_end = df[df.index.to_period('M') == test_month].index[-1]
+
+        # Iterate over all parameter combinations to find the best-performing set on the training period
+        best_params = None
+        best_perf = -np.inf
+
+        for window, upper, lower in param_grid:
+            try:
+                strategy_returns = run_strategy(df, train_start, train_end, window, upper, lower)
+                perf = (1+strategy_returns).cumprod().iloc[-1]-1
+                if perf > best_perf:
+                    best_perf = perf
+                    best_params = (window, upper, lower)
+            except:
+                input('an except occorred')
+                continue
+        
+        window, upper, lower = best_params
+        out_of_sample_ret = run_strategy(df, test_start, test_end, window, upper, lower)
+
+        # Store or append out-of-sample returns and corresponding dynamic parameters for each test period
+        if dynamic_strategy_returns is None:
+            dynamic_strategy_returns = out_of_sample_ret
+            dynamic_window = pd.Series(data=[window]*len(out_of_sample_ret), index=out_of_sample_ret.index)
+            dynamic_p_thresh = pd.Series(data=[upper]*len(out_of_sample_ret), index=out_of_sample_ret.index)
+            dynamic_n_thresh = pd.Series(data=[lower]*len(out_of_sample_ret), index=out_of_sample_ret.index)
+        else:
+            dynamic_strategy_returns = pd.concat([dynamic_strategy_returns, out_of_sample_ret])
+            dynamic_window = pd.concat([dynamic_window, pd.Series(data=[window]*len(out_of_sample_ret), index=out_of_sample_ret.index)])
+            dynamic_p_thresh = pd.concat([dynamic_p_thresh, pd.Series(data=[upper]*len(out_of_sample_ret), index=out_of_sample_ret.index)])
+            dynamic_n_thresh = pd.concat([dynamic_n_thresh, pd.Series(data=[lower]*len(out_of_sample_ret), index=out_of_sample_ret.index)])
+
+    # Trim dynamic strategy series to evaluation period and compute cumulative returns
+    dynamic_strategy_returns = dynamic_strategy_returns.loc[strat_start_date:strat_end_date]
+    dynamic_window = dynamic_window.loc[strat_start_date:strat_end_date]
+    dynamic_p_thresh = dynamic_p_thresh.loc[strat_start_date:strat_end_date]
+    dynamic_n_thresh = dynamic_n_thresh.loc[strat_start_date:strat_end_date]
+
+    dynamic_strategy_cumret = (1+dynamic_strategy_returns).cumprod()
+
+    # Plot dynamic vs constant parameters over time for window length and thresholds
+    plt.figure(figsize=(10, 5))
+    plt.plot(dynamic_window.index, dynamic_window, label='Dynamic Window', lw=1.5, color=color_palette[4])
+    plt.plot(const_window.index, const_window, label='Constant Window', lw=1.5, ls="--", color=color_palette[5])
+    plt.title('Rolling Window Correlation Lenght')
+    plt.xlabel("Date")
+    plt.ylabel("Correlation Window Length")
+    plt.legend(loc="upper right")
+    plt.grid(True, alpha=0.3)
+    plt.show()
+    
+    plt.figure(figsize=(10, 5))
+    plt.plot(dynamic_p_thresh.index, dynamic_p_thresh, label='Dynamic Upper Threshold', lw=1.5, color=color_palette[4])
+    plt.plot(const_p_thresh.index, const_p_thresh, label='Constant Upper Threshold', lw=1.5, ls="--", color=color_palette[5])
+    plt.title('Upper Threshold Value')
+    plt.xlabel("Date")
+    plt.ylabel("Upper Threshold")
+    plt.legend(loc="upper right")
+    plt.grid(True,  alpha=0.3)
+    plt.show()
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(dynamic_n_thresh.index, dynamic_n_thresh, label='Dynamic Lower Threshold', lw=1.5, color=color_palette[4])
+    plt.plot(const_n_thresh.index, const_n_thresh, label='Constant Lower Threshold', lw=1.5, ls="--", color=color_palette[5])
+    plt.title('Lower Threshold Value')
+    plt.xlabel("Date")
+    plt.ylabel("Lower Threshold")
+    plt.legend(loc="upper right")
+    plt.grid(True,  alpha=0.3)
+    plt.show()
+
+
+    # Output results 
+    print(f"Plain strategy cumulative return: {(plain_cumret.iloc[-1]-1):.4f}")
+    print(f"Dynamic strategy cumulative return: {(dynamic_strategy_cumret.iloc[-1]-1):.4f}")
 
     # Generate QuantStats performance report
     qs.reports.html(
-        returns=strategy_returns,
-        benchmark=df.loc[strat_start_date:strat_end_date, "log_return"],
-        output="performance_report_VALE3.html",
-        title="VALE3 Correlation Gap Performance Analysis",
-        benchmark_title="VALE3.SA"
+        returns=dynamic_strategy_returns,
+        benchmark=plain_returns,
+        output="performance_report_plain_vs_dynamic_parameters_strategy.html",
+        title="VALE3 Correlation Gap Performance Analysis Plain vs Dynamic Parameters Strategy",
+        benchmark_title="Plain Strategy"
     )
