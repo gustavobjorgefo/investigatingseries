@@ -29,6 +29,7 @@ Each folder corresponds to a specific investigation or topic discussed in the bl
 |--------|-------------|
 | `vale3_volatility_decomposition` | Decomposing historical volatility of VALE3 and building a trading model based on intraday/overnight return correlations. |
 | `02_vale3_gap_strategy` | Investigation of a correlation gap strategy for VALE3 with dynamic parameter selection and backtesting. |
+| `03_denoising_and_detoning` | Applying denoising and detoning to covariance and correlation matrices, and constructing the GMVP (Global Minimum Variance Portfolio). |
 | `...` | New studies and strategy prototypes will be added continuously. |
 
 ---
