@@ -1,0 +1,65 @@
+name: Idea
+description: Register a new research idea (question, hypothesis, target figure).
+title: "[Idea] "
+labels: ["idea"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Rough text is fine in Backlog. Polish happens when the card moves to **Scoped**.
+
+  - type: dropdown
+    id: post_type
+    attributes:
+      label: Post type
+      description: Suggested structure to start from (not mandatory).
+      options:
+        - Exploration (question -> data -> observations)
+        - Strategy backtest
+        - Portfolio / method
+        - Paper review / replication
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: One sentence. What do I want to know?
+    validations:
+      required: true
+
+  - type: textarea
+    id: hypothesis
+    attributes:
+      label: Hypothesis / expected result
+      description: What I expect and why (intuition or formula, 2-3 lines).
+
+  - type: textarea
+    id: target_figure
+    attributes:
+      label: Target figure
+      description: Describe the chart that would answer the question (axes, series, what should appear).
+
+  - type: textarea
+    id: minimal_experiment
+    attributes:
+      label: Minimal experiment
+      description: Data, period, parameters, 3-5 steps max.
+      placeholder: |
+        - Data:
+        - Period:
+        - Steps:
+
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Out of scope (for now)
+      description: Tempting things that do NOT go into the first version.
+
+  - type: input
+    id: source
+    attributes:
+      label: Source / inspiration
+      description: Paper, book, post, previous issue (#n).
