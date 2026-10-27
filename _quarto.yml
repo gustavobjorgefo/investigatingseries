@@ -1,0 +1,37 @@
+project:
+  type: website
+  output-dir: _site
+  render:
+    - index.qmd
+    - posts/*/index.qmd
+
+website:
+  title: "Investigating Series"
+  description: "Exploring financial markets through data, models and code."
+  site-url: https://gustavobjorgefo.github.io/investigatingseries/
+  repo-url: https://github.com/gustavobjorgefo/investigatingseries
+  draft-mode: unlinked
+  navbar:
+    left:
+      - href: index.qmd
+        text: Posts
+    right:
+      - text: Substack
+        href: https://gustavojorgefilho.substack.com
+      - icon: github
+        href: https://github.com/gustavobjorgefo/investigatingseries
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 2
+    code-fold: true
+    code-tools: true
+    fig-cap-location: bottom
+    fig-width: 8
+    fig-height: 4
+    css: styles.css
+
+execute:
+  freeze: auto

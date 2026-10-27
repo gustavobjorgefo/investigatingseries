@@ -1,0 +1,15 @@
+---
+title: "Investigating Series"
+listing:
+  contents: posts
+  sort: "date desc"
+  type: default
+  categories: true
+  feed: true
+page-layout: full
+title-block-banner: false
+code-tools: false
+---
+
+Research notes on markets, volatility and quantitative methods. Each post is a short report:
+question, hypothesis, method, results, caveats, and the code to reproduce it.

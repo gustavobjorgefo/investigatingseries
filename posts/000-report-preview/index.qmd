@@ -1,0 +1,118 @@
+---
+title: "Report preview – LETF volatility decay (toy example)"
+subtitle: "A daily-rebalanced 2x fund loses money in a flat, volatile market — and the formula says exactly how much."
+date: "2026-10-26"
+categories: [paper-review, letf, volatility]
+issue: 5
+draft: true
+---
+
+<!-- DEMO POST: shows what a finished report looks like. Delete this folder before the first real publish. -->
+
+## TL;DR
+
+- A 2x leveraged ETF rebalances **daily**, so over longer periods it does not deliver 2x the underlying's return.
+- In a **flat but volatile** market (μ = 0, σ = 50%), the 2x fund loses money even when the underlying ends where it started.
+- The loss follows a simple formula: the fund decays by roughly $e^{-\sigma^2 T}$ for β = 2.
+- In a **calm trending** market, the effect reverses: the fund beats 2x the underlying's cumulative return.
+
+## Question
+
+How does a daily-rebalanced 2x LETF compare to 2x the underlying's cumulative return in a low-vol trending market vs. a high-vol market with zero drift?
+
+*Source:* Avellaneda & Zhang (2010), "Path-Dependence of Leveraged ETF Returns", SIAM J. Financial Math.
+
+## Hypothesis / Theory
+
+Daily rebalancing makes the fund's value depend on the path, not only on the final price. In continuous time:
+
+$$
+\frac{V_T}{V_0} \approx \left(\frac{S_T}{S_0}\right)^{\beta} \exp\!\left(-\frac{\beta^2-\beta}{2}\,\sigma^2 T\right)
+$$
+
+For β = 2 the decay term is $e^{-\sigma^2 T}$: small for σ = 10%, large for σ = 50%.
+
+## Data & Method
+
+- Simulated geometric Brownian motion, 252 daily steps (1 year), 2,000 paths.
+- Scenario A: σ = 10%, μ = 15%. Scenario B: σ = 50%, μ = 0.
+- LETF built as 2 × the underlying's **daily** simple return, no fees or financing.
+
+```{python}
+#| label: setup
+#| code-summary: "Setup and simulation"
+import numpy as np
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng(42)
+n_days, n_paths, dt, beta = 252, 2000, 1 / 252, 2
+
+def simulate(mu, sigma):
+    z = rng.standard_normal((n_paths, n_days))
+    r = np.exp((mu - 0.5 * sigma**2) * dt + sigma * np.sqrt(dt) * z) - 1
+    S = np.cumprod(1 + r, axis=1)
+    L = np.cumprod(1 + beta * r, axis=1)
+    return S, L
+
+scenarios = {"A: σ=10%, μ=15%": (0.15, 0.10), "B: σ=50%, μ=0": (0.0, 0.50)}
+results = {name: simulate(mu, s) for name, (mu, s) in scenarios.items()}
+```
+
+## Results
+
+```{python}
+#| label: fig-main
+#| fig-cap: "Final LETF value vs. the underlying's final value. The theoretical curve (black) matches the simulation; in the volatile scenario it sits well below the naive '2x return' line (dashed)."
+fig, axes = plt.subplots(1, 2)
+for ax, (name, (mu, sigma)) in zip(axes, scenarios.items()):
+    S, L = results[name]
+    lo, hi = np.percentile(S[:, -1], [1, 99])
+    x = np.linspace(lo, hi, 100)
+    ax.scatter(S[:, -1], L[:, -1], s=4, alpha=0.3, label="Simulated paths")
+    ax.plot(x, x**beta * np.exp(-(beta**2 - beta) / 2 * sigma**2), color="black", label="Formula")
+    ax.plot(x, 1 + beta * (x - 1), ls="--", color="grey", label="Naive 2x return")
+    ax.set_xlim(lo, hi)
+    ax.set_ylim(0, (x**beta).max() * 1.05)
+    ax.set_title(name)
+    ax.set_xlabel("Underlying final value")
+axes[0].set_ylabel("LETF final value")
+axes[0].legend()
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+#| label: tbl-summary
+#| tbl-cap: "Median outcomes across 2,000 paths."
+import pandas as pd
+rows = []
+for name, (mu, sigma) in scenarios.items():
+    S, L = results[name]
+    rows.append({"Scenario": name,
+                 "Underlying (median)": np.median(S[:, -1]) - 1,
+                 "LETF (median)": np.median(L[:, -1]) - 1,
+                 "Decay e^(-σ²T) - 1": np.exp(-sigma**2) - 1})
+pd.DataFrame(rows).set_index("Scenario").style.format("{:.1%}")
+```
+
+## Caveats
+
+- No fund fees, swap financing or tracking error; real funds replicate via swaps and futures.
+- GBM has constant volatility; real markets have volatility clustering, which makes the decay path-dependent in time too.
+- Toy example: one year, two scenarios.
+
+## Next questions
+
+- Does the same decay show up in a real fund (e.g., SSO vs. SPY)? → issue #5
+- If I know the volatility in advance, can I trade this decay with a hedge? → issue #6
+
+## Reproduce
+
+- **Idea card:** issue #5
+- **Code:** expand the cells on this page
+- **Data:** simulated, seed 42
+- **Environment:** Python 3.12, `requirements.txt`
+
+## Appendix {.appendix}
+
+The formula comes from Itô's lemma applied to $dV/V = \beta\, dS/S$, which gives $d\log V = \beta\, d\log S - \tfrac{1}{2}(\beta^2-\beta)\sigma^2 dt$.

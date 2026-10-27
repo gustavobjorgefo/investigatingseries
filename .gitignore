@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+
+# Quarto (rendered site is rebuilt locally; _freeze/ IS committed)
+/.quarto/
+/_site/
+
+# Data: raw downloads are a local cache, never committed
+data/raw/
+
+# OS / editors
+Thumbs.db
+.DS_Store
+
+**/*.quarto_ipynb

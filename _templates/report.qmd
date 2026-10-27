@@ -1,0 +1,77 @@
+---
+title: "Investigating Series #N – Title"
+subtitle: "One sentence: what this post finds."
+date: "YYYY-MM-DD"
+categories: [type, topic]          # type: exploration | backtest | method | paper-review
+issue: 0                           # GitHub issue number of the idea card
+draft: true                        # remove when ready to publish
+---
+
+<!--
+HOW TO USE
+1. Copy this file to posts/00X-short-name/index.qmd
+2. Paste each field of the idea card (issue) into the matching section.
+3. Section names are FIXED; content is free. A section can be one line, or "N/A".
+-->
+
+## TL;DR
+
+<!-- 3–5 bullets + the key figure. This block is what goes to Substack. Write it LAST. -->
+
+-
+-
+-
+
+## Question
+
+<!-- From the card: Question + Source.
+     Paper review: start with "What the paper claims". -->
+
+## Hypothesis / Theory
+
+<!-- From the card: Hypothesis. Intuition first, then the formula. -->
+
+## Data & Method
+
+<!-- From the card: Minimal experiment. Data, period, parameters, assumptions.
+     Backtest: transaction costs and the out-of-sample period are MANDATORY here. -->
+
+```{python}
+#| label: setup
+#| code-summary: "Setup"
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+```
+
+## Results
+
+<!-- From the card: Target figure. One takeaway sentence per figure, in the caption. -->
+
+```{python}
+#| label: fig-main
+#| fig-cap: "Takeaway sentence for this figure."
+```
+
+## Caveats
+
+<!-- From the card: Out of scope + what could break the result.
+     Backtest: parameter sensitivity is MANDATORY here.
+     Paper review: compare your result with the paper's. -->
+
+## Next questions
+
+<!-- Each bullet becomes a new issue (link it: #n). -->
+
+-
+
+## Reproduce
+
+- **Idea card:** issue #N
+- **Code:** this page (expand the code cells) · [`posts/00X-short-name/`](https://github.com/gustavobjorgefo/investigatingseries/tree/main/posts)
+- **Data:** source, period, and where the processed file lives (`data/processed/...`)
+- **Environment:** Python 3.12, `requirements.txt`
+
+## Appendix {.appendix}
+
+<!-- Optional: derivations, extra figures. -->
