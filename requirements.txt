@@ -1,0 +1,19 @@
+# Core
+numpy
+pandas
+pyarrow
+scipy
+statsmodels
+scikit-learn
+matplotlib
+seaborn
+
+# Data sources
+requests
+yfinance
+
+# Notebooks / Quarto
+jupyter
+
+# Performance reports (older posts)
+quantstats
