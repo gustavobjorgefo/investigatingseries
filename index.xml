@@ -1,0 +1,765 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss  xmlns:atom="http://www.w3.org/2005/Atom" 
+      xmlns:media="http://search.yahoo.com/mrss/" 
+      xmlns:content="http://purl.org/rss/1.0/modules/content/" 
+      xmlns:dc="http://purl.org/dc/elements/1.1/" 
+      version="2.0">
+<channel>
+<title>Investigating Series</title>
+<link>https://gustavobjorgefo.github.io/investigatingseries/</link>
+<atom:link href="https://gustavobjorgefo.github.io/investigatingseries/index.xml" rel="self" type="application/rss+xml"/>
+<description>Exploring financial markets through data, models and code.</description>
+<generator>quarto-1.10.19</generator>
+<lastBuildDate>Sat, 31 Oct 2026 15:00:00 GMT</lastBuildDate>
+<item>
+  <title>Investigating Series #5 – PCA on the Brazilian Yield Curve</title>
+  <link>https://gustavobjorgefo.github.io/investigatingseries/posts/005-br-yield-curve-pca/</link>
+  <description><![CDATA[ 
+
+
+
+
+<!-- DRAFT v1 — corrections from the review applied. Rewrite freely in your own voice. -->
+<section id="tldr" class="level2">
+<h2 class="anchored" data-anchor-id="tldr">TL;DR</h2>
+<ul>
+<li>Over 2006–2026, <strong>three principal components explain 98.6%</strong> of the daily changes in the Brazilian PRE curve (3M to 10Y). Carol Alexander finds 99.2% for UK rates. Same structure: level, slope and curvature.</li>
+<li>The Brazilian curve moves <strong>about five times more</strong> than the UK curve in the book (≈240 bp a year at the long end, against ≈50 bp), and still behaves like a highly correlated term structure. The book expected less from emerging markets.</li>
+<li><strong>Covariance or correlation matters.</strong> With the covariance matrix, the level factor is weak at the front end — the short rates are anchored by the policy rate (Selic). With the correlation matrix, it is almost flat. Both shapes match the book’s UK results for the same choice.</li>
+<li>The structure is stable over time. The exception is <strong>2009–10</strong>, when the front end and the long end stopped moving together and PC1’s share fell to about 75%.</li>
+</ul>
+<div id="cell-fig-loadings" class="cell" data-execution_count="2">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1">fig, (ax1, ax2) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>, figsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3.8</span>), gridspec_kw<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"width_ratios"</span>: [<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]})</span>
+<span id="cb1-2"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> k <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">range</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>):</span>
+<span id="cb1-3">    pc <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"PC</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>k <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span></span>
+<span id="cb1-4">    ax1.plot(X_POS, load_cov[pc], color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>CATEGORICAL[k], ls<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>LINE_STYLES[k], marker<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>MARKERS[k], ms<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>,</span>
+<span id="cb1-5">             label<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>pc<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> (</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>expl_cov[pc]<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.1%}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">)"</span>)</span>
+<span id="cb1-6">ax1.axhline(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>REFERENCE_LINE, lw<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.8</span>)</span>
+<span id="cb1-7">ax1.set_xticks(X_POS, curve.columns)</span>
+<span id="cb1-8">ax1.set_xlabel(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Tenor"</span>)</span>
+<span id="cb1-9">ax1.set_ylabel(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Loading"</span>)</span>
+<span id="cb1-10">ax1.legend()</span>
+<span id="cb1-11"></span>
+<span id="cb1-12">top <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> expl_cov.head(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>)</span>
+<span id="cb1-13">ax2.bar(top.index, top.values <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">100</span>, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>CATEGORICAL[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>], width<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.6</span>)</span>
+<span id="cb1-14"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> x, v <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">zip</span>(top.index, top.values):</span>
+<span id="cb1-15">    ax2.annotate(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>v<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.1%}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>, (x, v <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">100</span>), xytext<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>), textcoords<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"offset points"</span>, ha<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"center"</span>, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>)</span>
+<span id="cb1-16">ax2.set_ylabel(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">% o</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f variance"</span>)</span>
+<span id="cb1-17">plt.tight_layout()</span>
+<span id="cb1-18">plt.show()</span></code></pre></div></div>
+</details>
+<div class="cell-output cell-output-display">
+<div id="fig-loadings" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-loadings-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="https://gustavobjorgefo.github.io/investigatingseries/posts/005-br-yield-curve-pca/index_files/figure-html/fig-loadings-output-1.png" width="1091" height="409" class="figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-loadings-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Loadings of the first three principal components (covariance of daily changes, 2006–2026) and their share of variance. PC1 is a level weighted towards the long end, PC2 a slope, PC3 a curvature.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="question" class="level2">
+<h2 class="anchored" data-anchor-id="question">Question</h2>
+<p>In <em>Market Risk Analysis</em> (Vol. II, ch.&nbsp;2), Carol Alexander runs a PCA on 50 UK spot rates, from 6 months to 25 years, using daily data from January 2005 to December 2007. On the correlation matrix, the first component — the level — explains 91.05% of the variation, the second — the slope — 6.85%, and the third — the curvature — 1.33%. Together, <strong>99.22%</strong>. Repeating the exercise on the covariance matrix of the short curve (1 to 60 months), the first three components explain 99.45%.</p>
+<p>The book also warns that this works best for major currencies: in emerging markets, less liquid and less correlated, three components usually explain less.</p>
+<p>So, <strong>does the same hold for the Brazilian curve?</strong> It is a good test: a high and volatile policy rate, frequent fiscal and political shocks, and short rates that ranged from about 2% to above 17% in the sample. PCA on the Brazilian curve goes back at least to Varga &amp; Valli (2001); this post revisits it with 20 years of public B3 data and open code.</p>
+</section>
+<section id="hypothesis-theory" class="level2">
+<h2 class="anchored" data-anchor-id="hypothesis-theory">Hypothesis / Theory</h2>
+<div class="callout callout-style-default callout-tip callout-titled" title="Primer: what PCA does to a yield curve">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Primer: what PCA does to a yield curve
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-1" class="callout-1-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>Every day, nine points of the curve move — but not independently. When the 5Y rate rises, the 7Y almost always rises too. <strong>Principal Component Analysis</strong> finds the few independent <em>shapes</em> of movement that, combined, reproduce the daily changes of every tenor.</p>
+<p>Each component comes with two things:</p>
+<ul>
+<li><strong>Loadings</strong> — one weight per tenor: the <em>shape</em> of the movement. If PC1 moves by one unit, the 10Y rate moves by its loading on PC1. All weights with the same sign is a shift of the whole curve (<em>level</em>); weights changing sign along the curve is a <em>slope</em>; ends against the middle is a <em>curvature</em>.</li>
+<li><strong>Eigenvalue</strong> — the variance of that component, i.e.&nbsp;how much of the daily movement of the curve the shape accounts for. Divided by the sum of all eigenvalues, it gives the share of variance explained.</li>
+</ul>
+<p>Two practical choices matter. We use <strong>daily changes, not levels</strong>: rate levels trend for years and are not stationary, while daily changes are. And we pick a <strong>covariance</strong> matrix (each tenor keeps its own volatility) or a <strong>correlation</strong> matrix (every tenor standardized to the same volatility). As we will see, the choice changes the shapes.</p>
+<p><strong>Go deeper:</strong> Alexander, <em>Market Risk Analysis</em>, Vol. II, ch.&nbsp;2; Litterman &amp; Scheinkman (1991), “Common Factors Affecting Bond Returns”, <em>Journal of Fixed Income</em>.</p>
+</div>
+</div>
+</div>
+<p>Let <img src="https://latex.codecogs.com/png.latex?%5CSigma"> be the covariance matrix of the daily changes across the nine tenors. PCA decomposes it as</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5CSigma%20=%20W%20%5CLambda%20W%5E%5Ctop,%20%5Cqquad%20%5Ctext%7Bshare%7D_k%20=%20%5Cfrac%7B%5Clambda_k%7D%7B%5Csum_j%20%5Clambda_j%7D%0A"></p>
+<p>where each column of <img src="https://latex.codecogs.com/png.latex?W"> is an eigenvector — the <strong>loadings</strong> of one component — and <img src="https://latex.codecogs.com/png.latex?%5CLambda"> is a diagonal matrix with the <strong>eigenvalues</strong> <img src="https://latex.codecogs.com/png.latex?%5Clambda_1%20%5Cge%20%5Clambda_2%20%5Cge%20%5Cdots">: <img src="https://latex.codecogs.com/png.latex?%5Clambda_k"> is the variance of component <img src="https://latex.codecogs.com/png.latex?k">, so <img src="https://latex.codecogs.com/png.latex?%5Ctext%7Bshare%7D_k"> is the fraction of the total variance it explains.</p>
+<p><strong>Hypothesis:</strong> three components explain more than 95% of the daily changes, as in the UK. Two Brazil-specific effects could break this: the higher volatility, and a front end tied to the Selic, which may move apart from the rest of the curve.</p>
+</section>
+<section id="data-method" class="level2">
+<h2 class="anchored" data-anchor-id="data-method">Data &amp; Method</h2>
+<ul>
+<li><strong>Source:</strong> B3 daily reference-rate files (TS), curve PRE (DI × Pré).</li>
+<li><strong>Constant maturities:</strong> 3M, 6M, 1Y, 2Y, 3Y, 4Y, 5Y, 7Y and 10Y. B3 publishes rates at fixed calendar-day vertices and at DI1 contract maturities, so each tenor is interpolated by <strong>flat forward</strong> (constant forward rate between vertices, 252 business-day basis), with no extrapolation.</li>
+<li><strong>Sample:</strong> 2006-01-02 to 2026-10-27, 5,156 daily changes. It starts in 2006 because the 10Y tenor is only available from September 2005.</li>
+<li><strong>PCA input:</strong> daily changes in basis points. Main results on the covariance matrix; the correlation matrix for the comparison with the book.</li>
+</ul>
+<p>Before running the PCA, it helps to look at what goes in. Brazilian rates are volatile, and much less so at the front end — the same shape as the UK curve in the book (Figure II.2.2), at a different scale.</p>
+<div id="cell-fig-vol" class="cell" data-execution_count="3">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1">fig, ax <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> plt.subplots(figsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3.2</span>))</span>
+<span id="cb2-2">ax.plot(X_POS, vol, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>CATEGORICAL[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>], marker<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>MARKERS[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>], ms<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>)</span>
+<span id="cb2-3"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> x, v <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">zip</span>(X_POS, vol):</span>
+<span id="cb2-4">    ax.annotate(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>v<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.0f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>, (x, v), xytext<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6</span>), textcoords<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"offset points"</span>, ha<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"center"</span>, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>)</span>
+<span id="cb2-5">ax.set_xticks(X_POS, curve.columns)</span>
+<span id="cb2-6">ax.set_xlabel(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Tenor"</span>)</span>
+<span id="cb2-7">ax.set_ylabel(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Volatility (bp per year)"</span>)</span>
+<span id="cb2-8">ax.set_ylim(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, vol.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">max</span>() <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.15</span>)</span>
+<span id="cb2-9">plt.show()</span></code></pre></div></div>
+</details>
+<div class="cell-output cell-output-display">
+<div id="fig-vol" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-vol-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="https://gustavobjorgefo.github.io/investigatingseries/posts/005-br-yield-curve-pca/index_files/figure-html/fig-vol-output-1.png" width="837" height="335" class="figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-vol-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: Annualized volatility of daily changes by tenor. Lowest at the front end, anchored by the policy rate, and flat beyond 4Y — the same shape as UK spot rates in Alexander (Figure II.2.2), at roughly five times the level.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="results" class="level2">
+<h2 class="anchored" data-anchor-id="results">Results</h2>
+<p><strong>Three factors, as in the UK.</strong> PC1 explains 91.5%, PC2 5.8% and PC3 1.4% of the daily variance (Figure&nbsp;1), 98.6% in total — close to the 99.45% of the book’s UK covariance case, and well above the 95% the book would expect from an emerging market.</p>
+<p><strong>The level factor lives at the long end.</strong> On the covariance matrix, PC1’s loading goes from 0.06 at 3M to about 0.40 from 3Y onwards: a one-unit move in PC1 moves the 10Y about six times more than the 3M. This is not a Brazilian peculiarity. Alexander finds the same for UK rates on the covariance matrix (Figure II.2.4): the first eigenvector “decreases markedly at the short end” and does not represent a parallel shift. The front end is low-volatility because it follows the policy rate, and a covariance PCA weights each tenor by its volatility.</p>
+<p><strong>Covariance vs.&nbsp;correlation tells two different stories.</strong> Standardizing every tenor — using the correlation matrix — removes the volatility difference. PC1 becomes almost flat and explains 82.3%, while PC2 grows to 13.2% (Figure&nbsp;3). The correlation shapes are those of the book’s Figure II.2.3: a level slightly lower at the short end, a slope decreasing with maturity, and a curvature high at the short end, negative in the middle and rising again at the long end.</p>
+<div id="cell-fig-cov-corr" class="cell" data-execution_count="4">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1">fig, axes <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>, figsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>), sharey<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb3-2"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> k, ax <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">enumerate</span>(axes):</span>
+<span id="cb3-3">    pc <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"PC</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>k <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span></span>
+<span id="cb3-4">    ax.plot(X_POS, load_cov[pc], color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>CATEGORICAL[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>], ls<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>LINE_STYLES[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>], marker<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>MARKERS[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>], ms<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>, label<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"covariance"</span>)</span>
+<span id="cb3-5">    ax.plot(X_POS, load_corr[pc], color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>CATEGORICAL[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>], ls<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>LINE_STYLES[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>], marker<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>MARKERS[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>], ms<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>, label<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"correlation"</span>)</span>
+<span id="cb3-6">    ax.axhline(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>REFERENCE_LINE, lw<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.8</span>)</span>
+<span id="cb3-7">    ax.set_xticks(X_POS, curve.columns, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7</span>)</span>
+<span id="cb3-8">    ax.set_title(pc)</span>
+<span id="cb3-9">axes[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>].legend(fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>)</span>
+<span id="cb3-10">plt.tight_layout()</span>
+<span id="cb3-11">plt.show()</span></code></pre></div></div>
+</details>
+<div class="cell-output cell-output-display">
+<div id="fig-cov-corr" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-cov-corr-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="https://gustavobjorgefo.github.io/investigatingseries/posts/005-br-yield-curve-pca/index_files/figure-html/fig-cov-corr-output-1.png" width="1092" height="322" class="figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-cov-corr-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: Loadings from the covariance matrix (solid) and the correlation matrix (dashed). Standardizing flattens PC1; the correlation shapes match those of UK spot rates in Alexander (Figure II.2.3).
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p><strong>Do the components really mean level, slope and curvature?</strong> A quick check: correlate each component with a simple measure built by hand from the same daily changes (Table&nbsp;1). We use the 1Y, not the 3M, as the short leg: the 3M is tied to the Copom decisions and would mix monetary policy into the slope. The book notes the same for the UK, where the shortest rates are “more influenced by government policies”. Level and slope map cleanly onto PC1 and PC2. The hand-made curvature maps onto PC3 but also picks up part of PC1, because the level factor moves the belly (3Y) more than the average of the wings. The signs follow the book’s convention: a rise in PC2 lifts the front end and lowers the long end, so it moves against the 10Y − 1Y spread.</p>
+<div class="cell" data-execution_count="5">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1">proxies <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.DataFrame({</span>
+<span id="cb4-2">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Level (mean of tenors)"</span>: changes.mean(axis<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>),</span>
+<span id="cb4-3">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Slope (10Y − 1Y)"</span>: changes[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"10Y"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> changes[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"1Y"</span>],</span>
+<span id="cb4-4">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Curvature (1Y + 10Y − 2·3Y)"</span>: changes[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"1Y"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> changes[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"10Y"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> changes[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"3Y"</span>],</span>
+<span id="cb4-5">})</span>
+<span id="cb4-6">(pd.concat([scores[[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"PC1"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"PC2"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"PC3"</span>]], proxies], axis<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>).corr()</span>
+<span id="cb4-7">   .loc[proxies.columns, [<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"PC1"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"PC2"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"PC3"</span>]].<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">round</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>))</span></code></pre></div></div>
+</details>
+<div id="tbl-proxies" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="5">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-proxies-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;1: Correlation between the daily component scores and simple curve measures. Level and slope map onto one component each; the simple curvature measure also carries part of the level.
+</figcaption>
+<div aria-describedby="tbl-proxies-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display" data-execution_count="5">
+<div>
+
+
+<table class="dataframe cell caption-top table table-sm table-striped small" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">PC1</th>
+<th data-quarto-table-cell-role="th">PC2</th>
+<th data-quarto-table-cell-role="th">PC3</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">Level (mean of tenors)</th>
+<td>1.00</td>
+<td>0.07</td>
+<td>0.03</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">Slope (10Y − 1Y)</th>
+<td>0.55</td>
+<td>-0.80</td>
+<td>0.12</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">Curvature (1Y + 10Y − 2·3Y)</th>
+<td>-0.62</td>
+<td>-0.10</td>
+<td>0.70</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<p><strong>Stable, but not constant.</strong> In rolling one-year windows, the first three components explain more than 93% of the variance at every point, but PC1 alone ranges from about 75% to above 95% (Figure&nbsp;4). The low point is the window from mid-2009 to mid-2010: the correlation between the 3M and the 10Y fell from 0.43 over the full sample to -0.04. The front end repriced on its own — the period leads into the 2010 tightening cycle — while the long end did not follow, and a single level factor could not describe both.</p>
+<div id="cell-fig-rolling" class="cell" data-execution_count="6">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1">WINDOW <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">252</span></span>
+<span id="cb5-2"></span>
+<span id="cb5-3"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> share_top(X):</span>
+<span id="cb5-4">    eig <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.sort(np.linalg.eigvalsh(np.cov((X <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> X.mean()).values.T)))[::<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]</span>
+<span id="cb5-5">    eig <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> eig <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> eig.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>()</span>
+<span id="cb5-6">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> pd.Series({<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"PC1"</span>: eig[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>], <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"PC1–2"</span>: eig[:<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>].<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>(), <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"PC1–3"</span>: eig[:<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>].<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>()})</span>
+<span id="cb5-7"></span>
+<span id="cb5-8">ends <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> changes.index[WINDOW::<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">21</span>]</span>
+<span id="cb5-9">rolling <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.DataFrame({d: share_top(changes.loc[:d].iloc[<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>WINDOW:]) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> d <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> ends}).T</span>
+<span id="cb5-10"></span>
+<span id="cb5-11">fig, ax <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> plt.subplots(figsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3.5</span>))</span>
+<span id="cb5-12"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> k, col <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">enumerate</span>(rolling.columns):</span>
+<span id="cb5-13">    ax.plot(rolling.index, rolling[col] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">100</span>, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>CATEGORICAL[k], ls<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>LINE_STYLES[k], label<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>col)</span>
+<span id="cb5-14">ax.set_ylabel(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">% o</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f variance (1-year window)"</span>)</span>
+<span id="cb5-15">ax.legend(loc<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"lower left"</span>)</span>
+<span id="cb5-16">plt.show()</span></code></pre></div></div>
+</details>
+<div class="cell-output cell-output-display">
+<div id="fig-rolling" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-rolling-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="https://gustavobjorgefo.github.io/investigatingseries/posts/005-br-yield-curve-pca/index_files/figure-html/fig-rolling-output-1.png" width="922" height="341" class="figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-rolling-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: Share of variance explained by the first components in rolling one-year windows. The three-factor structure is persistent; the dominance of the level factor is not.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="caveats" class="level2">
+<h2 class="anchored" data-anchor-id="caveats">Caveats</h2>
+<ul>
+<li><strong>Covariance or correlation.</strong> The two give different shapes, as shown above. Covariance is the natural choice for risk and hedging, since it keeps the volatilities; correlation is the one to compare with the book’s main case.</li>
+<li><strong>October 2026.</strong> The two largest daily moves in the sample (5 and 26 October 2026) followed the two rounds of the presidential election; the stress is visible in the volatility of the DI1 futures traded on B3 on those days. A covariance PCA is driven by large moves, so we re-ran it without the 1% of days with the largest moves: PC1’s share goes from 91.5% to 88.7%, and the shapes do not change.</li>
+<li><strong>A different setup from the book.</strong> The UK case uses 50 tenors from 6M to 25Y over three years; ours uses 9 tenors from 3M to 10Y over twenty years. The percentages are comparable in spirit, not to the decimal.</li>
+<li><strong>Interpolated tenors.</strong> In the early years, with fewer vertices, the long tenors rely on wider interpolation.</li>
+</ul>
+</section>
+<section id="next-questions" class="level2">
+<h2 class="anchored" data-anchor-id="next-questions">Next questions</h2>
+<ul>
+<li><strong>Can the three factors hedge a DI position out of sample?</strong> Estimate the PCA on a past window, build hedge ratios from the loadings, and measure how well the hedge holds in the following period. Then look for the estimation window that keeps the hedge stable — and test whether a learning approach can improve it.</li>
+</ul>
+</section>
+<section id="reproduce" class="level2">
+<h2 class="anchored" data-anchor-id="reproduce">Reproduce</h2>
+<ul>
+<li><strong>Idea card:</strong> <a href="https://github.com/gustavobjorgefo/investigatingseries/issues/7">issue #7</a></li>
+<li><strong>Data:</strong> <code>python posts/005-br-yield-curve-pca/build_dataset.py</code> (B3 TS files → <code>data/processed/br_pre_curve_cm.parquet</code>)</li>
+<li><strong>Exploration:</strong> <code>posts/005-br-yield-curve-pca/explore.ipynb</code></li>
+<li><strong>Code for this page:</strong> expand the cells above</li>
+<li><strong>Environment:</strong> Python 3.12, <code>requirements.txt</code></li>
+</ul>
+</section>
+
+
+<div id="quarto-appendix" class="default"><section id="appendix" class="level2 appendix"><h2 class="anchored quarto-appendix-heading">Appendix</h2><div class="quarto-appendix-contents">
+
+<p><strong>PCA, step by step.</strong> Let <img src="https://latex.codecogs.com/png.latex?X"> be the <img src="https://latex.codecogs.com/png.latex?T%20%5Ctimes%20n"> matrix of daily changes (<img src="https://latex.codecogs.com/png.latex?T"> days, <img src="https://latex.codecogs.com/png.latex?n%20=%209"> tenors), centered, and <img src="https://latex.codecogs.com/png.latex?V"> its covariance matrix.</p>
+<ol type="1">
+<li><strong>Eigen-decomposition.</strong> <img src="https://latex.codecogs.com/png.latex?V%20=%20W%20%5CLambda%20W%5E%5Ctop">, with <img src="https://latex.codecogs.com/png.latex?W"> orthogonal (<img src="https://latex.codecogs.com/png.latex?W%5E%7B-1%7D%20=%20W%5E%5Ctop">) and <img src="https://latex.codecogs.com/png.latex?%5CLambda%20=%20%5Ctext%7Bdiag%7D(%5Clambda_1,%20%5Cdots,%20%5Clambda_n)">, <img src="https://latex.codecogs.com/png.latex?%5Clambda_1%20%5Cge%20%5Cdots%20%5Cge%20%5Clambda_n%20%5Cge%200">.</li>
+<li><strong>Principal components.</strong> <img src="https://latex.codecogs.com/png.latex?P%20=%20XW">. Column <img src="https://latex.codecogs.com/png.latex?k"> of <img src="https://latex.codecogs.com/png.latex?P"> is the time series of component <img src="https://latex.codecogs.com/png.latex?k"> (its <em>scores</em>). The components are uncorrelated, and the variance of component <img src="https://latex.codecogs.com/png.latex?k"> is <img src="https://latex.codecogs.com/png.latex?%5Clambda_k">.</li>
+<li><strong>Representation.</strong> Since <img src="https://latex.codecogs.com/png.latex?W"> is orthogonal, <img src="https://latex.codecogs.com/png.latex?X%20=%20P%20W%5E%5Ctop">: each tenor’s daily change is a weighted sum of the components, with the loadings as weights, <img src="https://latex.codecogs.com/png.latex?%5CDelta%20r_%7Bi,t%7D%20=%20%5Csum_%7Bk=1%7D%5E%7Bn%7D%20w_%7Bik%7D%5C,%20P_%7Bk,t%7D%20%5Capprox%20%5Csum_%7Bk=1%7D%5E%7B3%7D%20w_%7Bik%7D%5C,%20P_%7Bk,t%7D."> Keeping only the first three columns gives the approximation, whose quality is the share of variance <img src="https://latex.codecogs.com/png.latex?%5Csum_%7Bk%20%5Cle%203%7D%20%5Clambda_k%20/%20%5Csum_j%20%5Clambda_j">.</li>
+<li><strong>Signs.</strong> Each eigenvector is defined up to its sign (<img src="https://latex.codecogs.com/png.latex?w"> and <img src="https://latex.codecogs.com/png.latex?-w"> are both eigenvectors). We follow the book: PC1 positive, PC2 and PC3 positive at the short end.</li>
+<li><strong>Correlation version.</strong> With <img src="https://latex.codecogs.com/png.latex?D"> the diagonal matrix of standard deviations, the correlation matrix is <img src="https://latex.codecogs.com/png.latex?C%20=%20D%5E%7B-1%7D%20V%20D%5E%7B-1%7D">. The PCA of <img src="https://latex.codecogs.com/png.latex?C"> is the PCA of the standardized changes; its eigenvectors are not a simple transformation of those of <img src="https://latex.codecogs.com/png.latex?V">, which is why the two shapes differ.</li>
+</ol>
+<p><strong>Flat-forward interpolation.</strong> B3 publishes the PRE curve at fixed calendar-day vertices and at DI1 contract maturities, not at constant maturities. Each tenor is interpolated between the two surrounding vertices <img src="https://latex.codecogs.com/png.latex?t_1%20%3C%20t%20%3C%20t_2"> (in business days) assuming a constant forward rate between them, which means interpolating the log discount factor linearly:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cln%20D(t)%20=%20%5Cln%20D(t_1)%20+%20%5Cfrac%7Bt%20-%20t_1%7D%7Bt_2%20-%20t_1%7D%5C,%5Cbig(%5Cln%20D(t_2)%20-%20%5Cln%20D(t_1)%5Cbig),%20%5Cqquad%20D(t)%20=%20(1%20+%20r_t)%5E%7B-t/252%7D%0A"></p>
+<p>Tenors beyond the longest available vertex are left empty rather than extrapolated. The implementation is <code>flat_forward()</code> in <code>build_dataset.py</code>.</p>
+
+
+<!-- -->
+
+</div></section></div> ]]></description>
+  <category>paper-review</category>
+  <category>rates</category>
+  <category>pca</category>
+  <category>brazil</category>
+  <guid>https://gustavobjorgefo.github.io/investigatingseries/posts/005-br-yield-curve-pca/</guid>
+  <pubDate>Sat, 31 Oct 2026 15:00:00 GMT</pubDate>
+</item>
+</channel>
+</rss>

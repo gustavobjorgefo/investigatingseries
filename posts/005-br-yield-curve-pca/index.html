@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.19">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2026-11-01">
+
+<title>Investigating Series #5 – PCA on the Brazilian Yield Curve – Investigating Series</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js" integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2" crossorigin="anonymous"></script><script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-c622184d6f925eaddb4e8c086d1959ee.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="https://cdn.jsdelivr.net/npm/requirejs@2.3.6/require.min.js" integrity="sha384-c9c+LnTbwQ3aujuU7ULEPVvgLs+Fn6fJUvIGTsuu1ZcCf11fiEubah0ttpca4ntM sha384-6V1/AdqZRWk1KAlWbKBlGhN7VG4iE/yAZcO6NZPMF8od0vukrvr0tg4qY6NSrItx" crossorigin="anonymous"></script>
+
+
+
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&amp;family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;display=swap">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">Investigating Series</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../index.html"> 
+<span class="menu-text">Posts</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="https://gustavojorgefilho.substack.com"> 
+<span class="menu-text">Substack</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/gustavobjorgefo/investigatingseries"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul class="collapse">
+  <li><a href="#tldr" id="toc-tldr" class="nav-link active" data-scroll-target="#tldr">TL;DR</a></li>
+  <li><a href="#question" id="toc-question" class="nav-link" data-scroll-target="#question">Question</a></li>
+  <li><a href="#hypothesis-theory" id="toc-hypothesis-theory" class="nav-link" data-scroll-target="#hypothesis-theory">Hypothesis / Theory</a></li>
+  <li><a href="#data-method" id="toc-data-method" class="nav-link" data-scroll-target="#data-method">Data &amp; Method</a></li>
+  <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results">Results</a></li>
+  <li><a href="#caveats" id="toc-caveats" class="nav-link" data-scroll-target="#caveats">Caveats</a></li>
+  <li><a href="#next-questions" id="toc-next-questions" class="nav-link" data-scroll-target="#next-questions">Next questions</a></li>
+  <li><a href="#reproduce" id="toc-reproduce" class="nav-link" data-scroll-target="#reproduce">Reproduce</a></li>
+  
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<div class="quarto-title-block"><div><h1 class="title">Investigating Series #5 – PCA on the Brazilian Yield Curve</h1><button type="button" class="btn code-tools-button dropdown-toggle" id="quarto-code-tools-menu" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi"></i> Code</button><ul class="dropdown-menu dropdown-menu-end" aria-labelelledby="quarto-code-tools-menu"><li><a id="quarto-show-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Show All Code</a></li><li><a id="quarto-hide-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Hide All Code</a></li><li><hr class="dropdown-divider"></li><li><a id="quarto-view-source" class="dropdown-item" href="javascript:void(0)" role="button">View Source</a></li></ul></div></div>
+<p class="subtitle lead">Three factors explain nearly 99% of the daily moves in the Brazilian PRE curve — the same structure Carol Alexander finds for UK rates, with about five times the volatility.</p>
+  <div class="quarto-categories">
+    <div class="quarto-category">paper-review</div>
+    <div class="quarto-category">rates</div>
+    <div class="quarto-category">pca</div>
+    <div class="quarto-category">brazil</div>
+  </div>
+  </div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">November 1, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<!-- DRAFT v1 — corrections from the review applied. Rewrite freely in your own voice. -->
+<section id="tldr" class="level2">
+<h2 class="anchored" data-anchor-id="tldr">TL;DR</h2>
+<ul>
+<li>Over 2006–2026, <strong>three principal components explain 98.6%</strong> of the daily changes in the Brazilian PRE curve (3M to 10Y). Carol Alexander finds 99.2% for UK rates. Same structure: level, slope and curvature.</li>
+<li>The Brazilian curve moves <strong>about five times more</strong> than the UK curve in the book (≈240 bp a year at the long end, against ≈50 bp), and still behaves like a highly correlated term structure. The book expected less from emerging markets.</li>
+<li><strong>Covariance or correlation matters.</strong> With the covariance matrix, the level factor is weak at the front end — the short rates are anchored by the policy rate (Selic). With the correlation matrix, it is almost flat. Both shapes match the book’s UK results for the same choice.</li>
+<li>The structure is stable over time. The exception is <strong>2009–10</strong>, when the front end and the long end stopped moving together and PC1’s share fell to about 75%.</li>
+</ul>
+<div id="cell-fig-loadings" class="cell" data-execution_count="2">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>fig, (ax1, ax2) <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="fl">3.8</span>), gridspec_kw<span class="op">=</span>{<span class="st">"width_ratios"</span>: [<span class="dv">2</span>, <span class="dv">1</span>]})</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">3</span>):</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    pc <span class="op">=</span> <span class="ss">f"PC</span><span class="sc">{</span>k <span class="op">+</span> <span class="dv">1</span><span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    ax1.plot(X_POS, load_cov[pc], color<span class="op">=</span>CATEGORICAL[k], ls<span class="op">=</span>LINE_STYLES[k], marker<span class="op">=</span>MARKERS[k], ms<span class="op">=</span><span class="dv">5</span>,</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>             label<span class="op">=</span><span class="ss">f"</span><span class="sc">{</span>pc<span class="sc">}</span><span class="ss"> (</span><span class="sc">{</span>expl_cov[pc]<span class="sc">:.1%}</span><span class="ss">)"</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>ax1.axhline(<span class="dv">0</span>, color<span class="op">=</span>REFERENCE_LINE, lw<span class="op">=</span><span class="fl">0.8</span>)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>ax1.set_xticks(X_POS, curve.columns)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>ax1.set_xlabel(<span class="st">"Tenor"</span>)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>ax1.set_ylabel(<span class="st">"Loading"</span>)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>ax1.legend()</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>top <span class="op">=</span> expl_cov.head(<span class="dv">5</span>)</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>ax2.bar(top.index, top.values <span class="op">*</span> <span class="dv">100</span>, color<span class="op">=</span>CATEGORICAL[<span class="dv">0</span>], width<span class="op">=</span><span class="fl">0.6</span>)</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> x, v <span class="kw">in</span> <span class="bu">zip</span>(top.index, top.values):</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    ax2.annotate(<span class="ss">f"</span><span class="sc">{</span>v<span class="sc">:.1%}</span><span class="ss">"</span>, (x, v <span class="op">*</span> <span class="dv">100</span>), xytext<span class="op">=</span>(<span class="dv">0</span>, <span class="dv">3</span>), textcoords<span class="op">=</span><span class="st">"offset points"</span>, ha<span class="op">=</span><span class="st">"center"</span>, fontsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>ax2.set_ylabel(<span class="st">"</span><span class="sc">% o</span><span class="st">f variance"</span>)</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-display">
+<div id="fig-loadings" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-loadings-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="index_files/figure-html/fig-loadings-output-1.png" width="1091" height="409" class="figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-loadings-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Loadings of the first three principal components (covariance of daily changes, 2006–2026) and their share of variance. PC1 is a level weighted towards the long end, PC2 a slope, PC3 a curvature.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="question" class="level2">
+<h2 class="anchored" data-anchor-id="question">Question</h2>
+<p>In <em>Market Risk Analysis</em> (Vol. II, ch.&nbsp;2), Carol Alexander runs a PCA on 50 UK spot rates, from 6 months to 25 years, using daily data from January 2005 to December 2007. On the correlation matrix, the first component — the level — explains 91.05% of the variation, the second — the slope — 6.85%, and the third — the curvature — 1.33%. Together, <strong>99.22%</strong>. Repeating the exercise on the covariance matrix of the short curve (1 to 60 months), the first three components explain 99.45%.</p>
+<p>The book also warns that this works best for major currencies: in emerging markets, less liquid and less correlated, three components usually explain less.</p>
+<p>So, <strong>does the same hold for the Brazilian curve?</strong> It is a good test: a high and volatile policy rate, frequent fiscal and political shocks, and short rates that ranged from about 2% to above 17% in the sample. PCA on the Brazilian curve goes back at least to Varga &amp; Valli (2001); this post revisits it with 20 years of public B3 data and open code.</p>
+</section>
+<section id="hypothesis-theory" class="level2">
+<h2 class="anchored" data-anchor-id="hypothesis-theory">Hypothesis / Theory</h2>
+<div class="callout callout-style-default callout-tip callout-titled" title="Primer: what PCA does to a yield curve">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Primer: what PCA does to a yield curve
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-1" class="callout-1-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>Every day, nine points of the curve move — but not independently. When the 5Y rate rises, the 7Y almost always rises too. <strong>Principal Component Analysis</strong> finds the few independent <em>shapes</em> of movement that, combined, reproduce the daily changes of every tenor.</p>
+<p>Each component comes with two things:</p>
+<ul>
+<li><strong>Loadings</strong> — one weight per tenor: the <em>shape</em> of the movement. If PC1 moves by one unit, the 10Y rate moves by its loading on PC1. All weights with the same sign is a shift of the whole curve (<em>level</em>); weights changing sign along the curve is a <em>slope</em>; ends against the middle is a <em>curvature</em>.</li>
+<li><strong>Eigenvalue</strong> — the variance of that component, i.e.&nbsp;how much of the daily movement of the curve the shape accounts for. Divided by the sum of all eigenvalues, it gives the share of variance explained.</li>
+</ul>
+<p>Two practical choices matter. We use <strong>daily changes, not levels</strong>: rate levels trend for years and are not stationary, while daily changes are. And we pick a <strong>covariance</strong> matrix (each tenor keeps its own volatility) or a <strong>correlation</strong> matrix (every tenor standardized to the same volatility). As we will see, the choice changes the shapes.</p>
+<p><strong>Go deeper:</strong> Alexander, <em>Market Risk Analysis</em>, Vol. II, ch.&nbsp;2; Litterman &amp; Scheinkman (1991), “Common Factors Affecting Bond Returns”, <em>Journal of Fixed Income</em>.</p>
+</div>
+</div>
+</div>
+<p>Let <span class="math inline">\(\Sigma\)</span> be the covariance matrix of the daily changes across the nine tenors. PCA decomposes it as</p>
+<p><span class="math display">\[
+\Sigma = W \Lambda W^\top, \qquad \text{share}_k = \frac{\lambda_k}{\sum_j \lambda_j}
+\]</span></p>
+<p>where each column of <span class="math inline">\(W\)</span> is an eigenvector — the <strong>loadings</strong> of one component — and <span class="math inline">\(\Lambda\)</span> is a diagonal matrix with the <strong>eigenvalues</strong> <span class="math inline">\(\lambda_1 \ge \lambda_2 \ge \dots\)</span>: <span class="math inline">\(\lambda_k\)</span> is the variance of component <span class="math inline">\(k\)</span>, so <span class="math inline">\(\text{share}_k\)</span> is the fraction of the total variance it explains.</p>
+<p><strong>Hypothesis:</strong> three components explain more than 95% of the daily changes, as in the UK. Two Brazil-specific effects could break this: the higher volatility, and a front end tied to the Selic, which may move apart from the rest of the curve.</p>
+</section>
+<section id="data-method" class="level2">
+<h2 class="anchored" data-anchor-id="data-method">Data &amp; Method</h2>
+<ul>
+<li><strong>Source:</strong> B3 daily reference-rate files (TS), curve PRE (DI × Pré).</li>
+<li><strong>Constant maturities:</strong> 3M, 6M, 1Y, 2Y, 3Y, 4Y, 5Y, 7Y and 10Y. B3 publishes rates at fixed calendar-day vertices and at DI1 contract maturities, so each tenor is interpolated by <strong>flat forward</strong> (constant forward rate between vertices, 252 business-day basis), with no extrapolation.</li>
+<li><strong>Sample:</strong> 2006-01-02 to 2026-10-27, 5,156 daily changes. It starts in 2006 because the 10Y tenor is only available from September 2005.</li>
+<li><strong>PCA input:</strong> daily changes in basis points. Main results on the covariance matrix; the correlation matrix for the comparison with the book.</li>
+</ul>
+<p>Before running the PCA, it helps to look at what goes in. Brazilian rates are volatile, and much less so at the front end — the same shape as the UK curve in the book (Figure II.2.2), at a different scale.</p>
+<div id="cell-fig-vol" class="cell" data-execution_count="3">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">9</span>, <span class="fl">3.2</span>))</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>ax.plot(X_POS, vol, color<span class="op">=</span>CATEGORICAL[<span class="dv">0</span>], marker<span class="op">=</span>MARKERS[<span class="dv">0</span>], ms<span class="op">=</span><span class="dv">5</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> x, v <span class="kw">in</span> <span class="bu">zip</span>(X_POS, vol):</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    ax.annotate(<span class="ss">f"</span><span class="sc">{</span>v<span class="sc">:.0f}</span><span class="ss">"</span>, (x, v), xytext<span class="op">=</span>(<span class="dv">0</span>, <span class="dv">6</span>), textcoords<span class="op">=</span><span class="st">"offset points"</span>, ha<span class="op">=</span><span class="st">"center"</span>, fontsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>ax.set_xticks(X_POS, curve.columns)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">"Tenor"</span>)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">"Volatility (bp per year)"</span>)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>ax.set_ylim(<span class="dv">0</span>, vol.<span class="bu">max</span>() <span class="op">*</span> <span class="fl">1.15</span>)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-display">
+<div id="fig-vol" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-vol-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="index_files/figure-html/fig-vol-output-1.png" width="837" height="335" class="figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-vol-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: Annualized volatility of daily changes by tenor. Lowest at the front end, anchored by the policy rate, and flat beyond 4Y — the same shape as UK spot rates in Alexander (Figure II.2.2), at roughly five times the level.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="results" class="level2">
+<h2 class="anchored" data-anchor-id="results">Results</h2>
+<p><strong>Three factors, as in the UK.</strong> PC1 explains 91.5%, PC2 5.8% and PC3 1.4% of the daily variance (<a href="#fig-loadings" class="quarto-xref">Figure&nbsp;1</a>), 98.6% in total — close to the 99.45% of the book’s UK covariance case, and well above the 95% the book would expect from an emerging market.</p>
+<p><strong>The level factor lives at the long end.</strong> On the covariance matrix, PC1’s loading goes from 0.06 at 3M to about 0.40 from 3Y onwards: a one-unit move in PC1 moves the 10Y about six times more than the 3M. This is not a Brazilian peculiarity. Alexander finds the same for UK rates on the covariance matrix (Figure II.2.4): the first eigenvector “decreases markedly at the short end” and does not represent a parallel shift. The front end is low-volatility because it follows the policy rate, and a covariance PCA weights each tenor by its volatility.</p>
+<p><strong>Covariance vs.&nbsp;correlation tells two different stories.</strong> Standardizing every tenor — using the correlation matrix — removes the volatility difference. PC1 becomes almost flat and explains 82.3%, while PC2 grows to 13.2% (<a href="#fig-cov-corr" class="quarto-xref">Figure&nbsp;3</a>). The correlation shapes are those of the book’s Figure II.2.3: a level slightly lower at the short end, a slope decreasing with maturity, and a curvature high at the short end, negative in the middle and rising again at the long end.</p>
+<div id="cell-fig-cov-corr" class="cell" data-execution_count="4">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">3</span>), sharey<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k, ax <span class="kw">in</span> <span class="bu">enumerate</span>(axes):</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    pc <span class="op">=</span> <span class="ss">f"PC</span><span class="sc">{</span>k <span class="op">+</span> <span class="dv">1</span><span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    ax.plot(X_POS, load_cov[pc], color<span class="op">=</span>CATEGORICAL[<span class="dv">0</span>], ls<span class="op">=</span>LINE_STYLES[<span class="dv">0</span>], marker<span class="op">=</span>MARKERS[<span class="dv">0</span>], ms<span class="op">=</span><span class="dv">4</span>, label<span class="op">=</span><span class="st">"covariance"</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    ax.plot(X_POS, load_corr[pc], color<span class="op">=</span>CATEGORICAL[<span class="dv">1</span>], ls<span class="op">=</span>LINE_STYLES[<span class="dv">1</span>], marker<span class="op">=</span>MARKERS[<span class="dv">1</span>], ms<span class="op">=</span><span class="dv">4</span>, label<span class="op">=</span><span class="st">"correlation"</span>)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    ax.axhline(<span class="dv">0</span>, color<span class="op">=</span>REFERENCE_LINE, lw<span class="op">=</span><span class="fl">0.8</span>)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    ax.set_xticks(X_POS, curve.columns, fontsize<span class="op">=</span><span class="dv">7</span>)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    ax.set_title(pc)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].legend(fontsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-display">
+<div id="fig-cov-corr" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-cov-corr-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="index_files/figure-html/fig-cov-corr-output-1.png" width="1092" height="322" class="figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-cov-corr-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: Loadings from the covariance matrix (solid) and the correlation matrix (dashed). Standardizing flattens PC1; the correlation shapes match those of UK spot rates in Alexander (Figure II.2.3).
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p><strong>Do the components really mean level, slope and curvature?</strong> A quick check: correlate each component with a simple measure built by hand from the same daily changes (<a href="#tbl-proxies" class="quarto-xref">Table&nbsp;1</a>). We use the 1Y, not the 3M, as the short leg: the 3M is tied to the Copom decisions and would mix monetary policy into the slope. The book notes the same for the UK, where the shortest rates are “more influenced by government policies”. Level and slope map cleanly onto PC1 and PC2. The hand-made curvature maps onto PC3 but also picks up part of PC1, because the level factor moves the belly (3Y) more than the average of the wings. The signs follow the book’s convention: a rise in PC2 lifts the front end and lowers the long end, so it moves against the 10Y − 1Y spread.</p>
+<div class="cell" data-execution_count="5">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>proxies <span class="op">=</span> pd.DataFrame({</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Level (mean of tenors)"</span>: changes.mean(axis<span class="op">=</span><span class="dv">1</span>),</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Slope (10Y − 1Y)"</span>: changes[<span class="st">"10Y"</span>] <span class="op">-</span> changes[<span class="st">"1Y"</span>],</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Curvature (1Y + 10Y − 2·3Y)"</span>: changes[<span class="st">"1Y"</span>] <span class="op">+</span> changes[<span class="st">"10Y"</span>] <span class="op">-</span> <span class="dv">2</span> <span class="op">*</span> changes[<span class="st">"3Y"</span>],</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>(pd.concat([scores[[<span class="st">"PC1"</span>, <span class="st">"PC2"</span>, <span class="st">"PC3"</span>]], proxies], axis<span class="op">=</span><span class="dv">1</span>).corr()</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>   .loc[proxies.columns, [<span class="st">"PC1"</span>, <span class="st">"PC2"</span>, <span class="st">"PC3"</span>]].<span class="bu">round</span>(<span class="dv">2</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div id="tbl-proxies" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="5">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-proxies-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;1: Correlation between the daily component scores and simple curve measures. Level and slope map onto one component each; the simple curvature measure also carries part of the level.
+</figcaption>
+<div aria-describedby="tbl-proxies-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-display" data-execution_count="5">
+<div>
+
+
+<table class="dataframe cell caption-top table table-sm table-striped small" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">PC1</th>
+<th data-quarto-table-cell-role="th">PC2</th>
+<th data-quarto-table-cell-role="th">PC3</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">Level (mean of tenors)</th>
+<td>1.00</td>
+<td>0.07</td>
+<td>0.03</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">Slope (10Y − 1Y)</th>
+<td>0.55</td>
+<td>-0.80</td>
+<td>0.12</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">Curvature (1Y + 10Y − 2·3Y)</th>
+<td>-0.62</td>
+<td>-0.10</td>
+<td>0.70</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<p><strong>Stable, but not constant.</strong> In rolling one-year windows, the first three components explain more than 93% of the variance at every point, but PC1 alone ranges from about 75% to above 95% (<a href="#fig-rolling" class="quarto-xref">Figure&nbsp;4</a>). The low point is the window from mid-2009 to mid-2010: the correlation between the 3M and the 10Y fell from 0.43 over the full sample to -0.04. The front end repriced on its own — the period leads into the 2010 tightening cycle — while the long end did not follow, and a single level factor could not describe both.</p>
+<div id="cell-fig-rolling" class="cell" data-execution_count="6">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>WINDOW <span class="op">=</span> <span class="dv">252</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> share_top(X):</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    eig <span class="op">=</span> np.sort(np.linalg.eigvalsh(np.cov((X <span class="op">-</span> X.mean()).values.T)))[::<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    eig <span class="op">=</span> eig <span class="op">/</span> eig.<span class="bu">sum</span>()</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> pd.Series({<span class="st">"PC1"</span>: eig[<span class="dv">0</span>], <span class="st">"PC1–2"</span>: eig[:<span class="dv">2</span>].<span class="bu">sum</span>(), <span class="st">"PC1–3"</span>: eig[:<span class="dv">3</span>].<span class="bu">sum</span>()})</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>ends <span class="op">=</span> changes.index[WINDOW::<span class="dv">21</span>]</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>rolling <span class="op">=</span> pd.DataFrame({d: share_top(changes.loc[:d].iloc[<span class="op">-</span>WINDOW:]) <span class="cf">for</span> d <span class="kw">in</span> ends}).T</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="fl">3.5</span>))</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k, col <span class="kw">in</span> <span class="bu">enumerate</span>(rolling.columns):</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    ax.plot(rolling.index, rolling[col] <span class="op">*</span> <span class="dv">100</span>, color<span class="op">=</span>CATEGORICAL[k], ls<span class="op">=</span>LINE_STYLES[k], label<span class="op">=</span>col)</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">"</span><span class="sc">% o</span><span class="st">f variance (1-year window)"</span>)</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>ax.legend(loc<span class="op">=</span><span class="st">"lower left"</span>)</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-display">
+<div id="fig-rolling" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-rolling-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="index_files/figure-html/fig-rolling-output-1.png" width="922" height="341" class="figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-rolling-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: Share of variance explained by the first components in rolling one-year windows. The three-factor structure is persistent; the dominance of the level factor is not.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="caveats" class="level2">
+<h2 class="anchored" data-anchor-id="caveats">Caveats</h2>
+<ul>
+<li><strong>Covariance or correlation.</strong> The two give different shapes, as shown above. Covariance is the natural choice for risk and hedging, since it keeps the volatilities; correlation is the one to compare with the book’s main case.</li>
+<li><strong>October 2026.</strong> The two largest daily moves in the sample (5 and 26 October 2026) followed the two rounds of the presidential election; the stress is visible in the volatility of the DI1 futures traded on B3 on those days. A covariance PCA is driven by large moves, so we re-ran it without the 1% of days with the largest moves: PC1’s share goes from 91.5% to 88.7%, and the shapes do not change.</li>
+<li><strong>A different setup from the book.</strong> The UK case uses 50 tenors from 6M to 25Y over three years; ours uses 9 tenors from 3M to 10Y over twenty years. The percentages are comparable in spirit, not to the decimal.</li>
+<li><strong>Interpolated tenors.</strong> In the early years, with fewer vertices, the long tenors rely on wider interpolation.</li>
+</ul>
+</section>
+<section id="next-questions" class="level2">
+<h2 class="anchored" data-anchor-id="next-questions">Next questions</h2>
+<ul>
+<li><strong>Can the three factors hedge a DI position out of sample?</strong> Estimate the PCA on a past window, build hedge ratios from the loadings, and measure how well the hedge holds in the following period. Then look for the estimation window that keeps the hedge stable — and test whether a learning approach can improve it.</li>
+</ul>
+</section>
+<section id="reproduce" class="level2">
+<h2 class="anchored" data-anchor-id="reproduce">Reproduce</h2>
+<ul>
+<li><strong>Idea card:</strong> <a href="https://github.com/gustavobjorgefo/investigatingseries/issues/7">issue #7</a></li>
+<li><strong>Data:</strong> <code>python posts/005-br-yield-curve-pca/build_dataset.py</code> (B3 TS files → <code>data/processed/br_pre_curve_cm.parquet</code>)</li>
+<li><strong>Exploration:</strong> <code>posts/005-br-yield-curve-pca/explore.ipynb</code></li>
+<li><strong>Code for this page:</strong> expand the cells above</li>
+<li><strong>Environment:</strong> Python 3.12, <code>requirements.txt</code></li>
+</ul>
+</section>
+
+
+<div id="quarto-appendix" class="default"><section id="appendix" class="level2 appendix"><h2 class="anchored quarto-appendix-heading">Appendix</h2><div class="quarto-appendix-contents">
+
+<p><strong>PCA, step by step.</strong> Let <span class="math inline">\(X\)</span> be the <span class="math inline">\(T \times n\)</span> matrix of daily changes (<span class="math inline">\(T\)</span> days, <span class="math inline">\(n = 9\)</span> tenors), centered, and <span class="math inline">\(V\)</span> its covariance matrix.</p>
+<ol type="1">
+<li><strong>Eigen-decomposition.</strong> <span class="math inline">\(V = W \Lambda W^\top\)</span>, with <span class="math inline">\(W\)</span> orthogonal (<span class="math inline">\(W^{-1} = W^\top\)</span>) and <span class="math inline">\(\Lambda = \text{diag}(\lambda_1, \dots, \lambda_n)\)</span>, <span class="math inline">\(\lambda_1 \ge \dots \ge \lambda_n \ge 0\)</span>.</li>
+<li><strong>Principal components.</strong> <span class="math inline">\(P = XW\)</span>. Column <span class="math inline">\(k\)</span> of <span class="math inline">\(P\)</span> is the time series of component <span class="math inline">\(k\)</span> (its <em>scores</em>). The components are uncorrelated, and the variance of component <span class="math inline">\(k\)</span> is <span class="math inline">\(\lambda_k\)</span>.</li>
+<li><strong>Representation.</strong> Since <span class="math inline">\(W\)</span> is orthogonal, <span class="math inline">\(X = P W^\top\)</span>: each tenor’s daily change is a weighted sum of the components, with the loadings as weights, <span class="math display">\[\Delta r_{i,t} = \sum_{k=1}^{n} w_{ik}\, P_{k,t} \approx \sum_{k=1}^{3} w_{ik}\, P_{k,t}.\]</span> Keeping only the first three columns gives the approximation, whose quality is the share of variance <span class="math inline">\(\sum_{k \le 3} \lambda_k / \sum_j \lambda_j\)</span>.</li>
+<li><strong>Signs.</strong> Each eigenvector is defined up to its sign (<span class="math inline">\(w\)</span> and <span class="math inline">\(-w\)</span> are both eigenvectors). We follow the book: PC1 positive, PC2 and PC3 positive at the short end.</li>
+<li><strong>Correlation version.</strong> With <span class="math inline">\(D\)</span> the diagonal matrix of standard deviations, the correlation matrix is <span class="math inline">\(C = D^{-1} V D^{-1}\)</span>. The PCA of <span class="math inline">\(C\)</span> is the PCA of the standardized changes; its eigenvectors are not a simple transformation of those of <span class="math inline">\(V\)</span>, which is why the two shapes differ.</li>
+</ol>
+<p><strong>Flat-forward interpolation.</strong> B3 publishes the PRE curve at fixed calendar-day vertices and at DI1 contract maturities, not at constant maturities. Each tenor is interpolated between the two surrounding vertices <span class="math inline">\(t_1 &lt; t &lt; t_2\)</span> (in business days) assuming a constant forward rate between them, which means interpolating the log discount factor linearly:</p>
+<p><span class="math display">\[
+\ln D(t) = \ln D(t_1) + \frac{t - t_1}{t_2 - t_1}\,\big(\ln D(t_2) - \ln D(t_1)\big), \qquad D(t) = (1 + r_t)^{-t/252}
+\]</span></p>
+<p>Tenors beyond the longest available vertex are left empty rather than extrapolated. The implementation is <code>flat_forward()</code> in <code>build_dataset.py</code>.</p>
+
+
+<!-- -->
+
+</div></section></div></main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+    const viewSource = window.document.getElementById('quarto-view-source') ||
+                       window.document.getElementById('quarto-code-tools-source');
+    if (viewSource) {
+      const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+      viewSource.addEventListener("click", function(e) {
+        if (sourceUrl) {
+          // rstudio viewer pane
+          if (/\bcapabilities=\b/.test(window.location)) {
+            window.open(sourceUrl);
+          } else {
+            window.location.href = sourceUrl;
+          }
+        } else {
+          const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+          modal.show();
+        }
+        return false;
+      });
+    }
+    function toggleCodeHandler(show) {
+      return function(e) {
+        const cellDetails = window.document.querySelectorAll(".cell details.code-fold");
+        for (let i=0; i<cellDetails.length; i++) {
+          const details = cellDetails[i];
+          if (show) {
+            details.open = true;
+          } else {
+            details.removeAttribute("open");
+          }
+        }
+        const cellCodeDivs = window.document.querySelectorAll(".cell div.sourceCode.cell-code");
+        const fromCls = show ? "hidden" : "unhidden";
+        const toCls = show ? "unhidden" : "hidden";
+        for (let i=0; i<cellCodeDivs.length; i++) {
+          const codeDiv = cellCodeDivs[i];
+          if (codeDiv.classList.contains(fromCls)) {
+            codeDiv.classList.remove(fromCls);
+            codeDiv.classList.add(toCls);
+          } 
+        }
+        return false;
+      }
+    }
+    const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+    if (hideAllCode) {
+      hideAllCode.addEventListener("click", toggleCodeHandler(false));
+    }
+    const showAllCode = window.document.getElementById("quarto-show-all-code");
+    if (showAllCode) {
+      showAllCode.addEventListener("click", toggleCodeHandler(true));
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/gustavobjorgefo\.github\.io\/investigatingseries\/");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Investigating Series #5 – PCA on the Brazilian Yield Curve"</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="an">subtitle:</span><span class="co"> "Three factors explain nearly 99% of the daily moves in the Brazilian PRE curve — the same structure Carol Alexander finds for UK rates, with about five times the volatility."</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> "2026-11-01"</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="an">categories:</span><span class="co"> [paper-review, rates, pca, brazil]</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="an">issue:</span><span class="co"> 7</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="co">&lt;!-- DRAFT v1 — corrections from the review applied. Rewrite freely in your own voice. --&gt;</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: setup</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="co">#| include: false</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>ROOT <span class="op">=</span> Path.cwd()</span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> <span class="kw">not</span> (ROOT <span class="op">/</span> <span class="st">"_quarto.yml"</span>).exists():</span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>    ROOT <span class="op">=</span> ROOT.parent</span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>sys.path.insert(<span class="dv">0</span>, <span class="bu">str</span>(ROOT <span class="op">/</span> <span class="st">"src"</span>))</span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> investigating.style <span class="im">import</span> apply_style, CATEGORICAL, LINE_STYLES, MARKERS, REFERENCE_LINE</span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>apply_style()</span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>START <span class="op">=</span> <span class="st">"2006-01-01"</span></span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>curve <span class="op">=</span> pd.read_parquet(ROOT <span class="op">/</span> <span class="st">"data/processed/br_pre_curve_cm.parquet"</span>).loc[START:]</span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>changes <span class="op">=</span> (curve.diff() <span class="op">*</span> <span class="dv">100</span>).dropna()                 <span class="co"># daily changes, bp</span></span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>X_POS <span class="op">=</span> np.arange(curve.shape[<span class="dv">1</span>])                       <span class="co"># tenors at equal spacing on charts</span></span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>vol <span class="op">=</span> changes.std() <span class="op">*</span> np.sqrt(<span class="dv">252</span>)                      <span class="co"># annualized volatility, bp</span></span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> pca(X: pd.DataFrame, standardize: <span class="bu">bool</span> <span class="op">=</span> <span class="va">False</span>):</span>
+<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""PCA of the covariance (or correlation) matrix of X. Signs follow Alexander (2008)."""</span></span>
+<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a>    Z <span class="op">=</span> (X <span class="op">-</span> X.mean()) <span class="op">/</span> X.std() <span class="cf">if</span> standardize <span class="cf">else</span> X <span class="op">-</span> X.mean()</span>
+<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a>    eigvals, eigvecs <span class="op">=</span> np.linalg.eigh(np.cov(Z.values.T))</span>
+<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a>    order <span class="op">=</span> eigvals.argsort()[::<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb6-45"><a href="#cb6-45" aria-hidden="true" tabindex="-1"></a>    eigvals, eigvecs <span class="op">=</span> eigvals[order], eigvecs[:, order]</span>
+<span id="cb6-46"><a href="#cb6-46" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Eigenvectors are defined up to their sign. Book convention:</span></span>
+<span id="cb6-47"><a href="#cb6-47" aria-hidden="true" tabindex="-1"></a>    <span class="co"># PC1 positive, PC2 and PC3 positive at the short end.</span></span>
+<span id="cb6-48"><a href="#cb6-48" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> k, anchor <span class="kw">in</span> [(<span class="dv">0</span>, <span class="bu">slice</span>(<span class="va">None</span>)), (<span class="dv">1</span>, <span class="dv">0</span>), (<span class="dv">2</span>, <span class="dv">0</span>)]:</span>
+<span id="cb6-49"><a href="#cb6-49" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> np.mean(eigvecs[anchor, k]) <span class="op">&lt;</span> <span class="dv">0</span>:</span>
+<span id="cb6-50"><a href="#cb6-50" aria-hidden="true" tabindex="-1"></a>            eigvecs[:, k] <span class="op">*=</span> <span class="op">-</span><span class="dv">1</span></span>
+<span id="cb6-51"><a href="#cb6-51" aria-hidden="true" tabindex="-1"></a>    cols <span class="op">=</span> [<span class="ss">f"PC</span><span class="sc">{</span>i <span class="op">+</span> <span class="dv">1</span><span class="sc">}</span><span class="ss">"</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(X.shape[<span class="dv">1</span>])]</span>
+<span id="cb6-52"><a href="#cb6-52" aria-hidden="true" tabindex="-1"></a>    loadings <span class="op">=</span> pd.DataFrame(eigvecs, index<span class="op">=</span>X.columns, columns<span class="op">=</span>cols)</span>
+<span id="cb6-53"><a href="#cb6-53" aria-hidden="true" tabindex="-1"></a>    explained <span class="op">=</span> pd.Series(eigvals <span class="op">/</span> eigvals.<span class="bu">sum</span>(), index<span class="op">=</span>cols)</span>
+<span id="cb6-54"><a href="#cb6-54" aria-hidden="true" tabindex="-1"></a>    scores <span class="op">=</span> pd.DataFrame(Z.values <span class="op">@</span> eigvecs, index<span class="op">=</span>X.index, columns<span class="op">=</span>cols)</span>
+<span id="cb6-55"><a href="#cb6-55" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> loadings, explained, scores</span>
+<span id="cb6-56"><a href="#cb6-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-57"><a href="#cb6-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-58"><a href="#cb6-58" aria-hidden="true" tabindex="-1"></a>load_cov, expl_cov, scores <span class="op">=</span> pca(changes)</span>
+<span id="cb6-59"><a href="#cb6-59" aria-hidden="true" tabindex="-1"></a>load_corr, expl_corr, _ <span class="op">=</span> pca(changes, standardize<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb6-60"><a href="#cb6-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-61"><a href="#cb6-61" aria-hidden="true" tabindex="-1"></a><span class="co"># 2009-10: correlation between the front end and the long end</span></span>
+<span id="cb6-62"><a href="#cb6-62" aria-hidden="true" tabindex="-1"></a>w <span class="op">=</span> changes.loc[<span class="st">"2009-07"</span>:<span class="st">"2010-07"</span>]</span>
+<span id="cb6-63"><a href="#cb6-63" aria-hidden="true" tabindex="-1"></a>corr_3m_10y_full, corr_3m_10y_2010 <span class="op">=</span> changes[<span class="st">"3M"</span>].corr(changes[<span class="st">"10Y"</span>]), w[<span class="st">"3M"</span>].corr(w[<span class="st">"10Y"</span>])</span>
+<span id="cb6-64"><a href="#cb6-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-65"><a href="#cb6-65" aria-hidden="true" tabindex="-1"></a><span class="co"># Robustness: without the 1% of days with the largest moves</span></span>
+<span id="cb6-66"><a href="#cb6-66" aria-hidden="true" tabindex="-1"></a>largest_move <span class="op">=</span> changes.<span class="bu">abs</span>().<span class="bu">max</span>(axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb6-67"><a href="#cb6-67" aria-hidden="true" tabindex="-1"></a>_, expl_calm, _ <span class="op">=</span> pca(changes[largest_move <span class="op">&lt;=</span> largest_move.quantile(<span class="fl">0.99</span>)])</span>
+<span id="cb6-68"><a href="#cb6-68" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb6-69"><a href="#cb6-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-70"><a href="#cb6-70" aria-hidden="true" tabindex="-1"></a><span class="fu">## TL;DR</span></span>
+<span id="cb6-71"><a href="#cb6-71" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-72"><a href="#cb6-72" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Over 2006–2026, **three principal components explain `{python} f"{expl_cov[:3].sum():.1%}"`** of the daily changes in the Brazilian PRE curve (3M to 10Y). Carol Alexander finds 99.2% for UK rates. Same structure: level, slope and curvature.</span>
+<span id="cb6-73"><a href="#cb6-73" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The Brazilian curve moves **about five times more** than the UK curve in the book (≈240 bp a year at the long end, against ≈50 bp), and still behaves like a highly correlated term structure. The book expected less from emerging markets.</span>
+<span id="cb6-74"><a href="#cb6-74" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Covariance or correlation matters.** With the covariance matrix, the level factor is weak at the front end — the short rates are anchored by the policy rate (Selic). With the correlation matrix, it is almost flat. Both shapes match the book's UK results for the same choice.</span>
+<span id="cb6-75"><a href="#cb6-75" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The structure is stable over time. The exception is **2009–10**, when the front end and the long end stopped moving together and PC1's share fell to about 75%.</span>
+<span id="cb6-76"><a href="#cb6-76" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-79"><a href="#cb6-79" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb6-80"><a href="#cb6-80" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-loadings</span></span>
+<span id="cb6-81"><a href="#cb6-81" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Loadings of the first three principal components (covariance of daily changes, 2006–2026) and their share of variance. PC1 is a level weighted towards the long end, PC2 a slope, PC3 a curvature."</span></span>
+<span id="cb6-82"><a href="#cb6-82" aria-hidden="true" tabindex="-1"></a>fig, (ax1, ax2) <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="fl">3.8</span>), gridspec_kw<span class="op">=</span>{<span class="st">"width_ratios"</span>: [<span class="dv">2</span>, <span class="dv">1</span>]})</span>
+<span id="cb6-83"><a href="#cb6-83" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">3</span>):</span>
+<span id="cb6-84"><a href="#cb6-84" aria-hidden="true" tabindex="-1"></a>    pc <span class="op">=</span> <span class="ss">f"PC</span><span class="sc">{</span>k <span class="op">+</span> <span class="dv">1</span><span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb6-85"><a href="#cb6-85" aria-hidden="true" tabindex="-1"></a>    ax1.plot(X_POS, load_cov[pc], color<span class="op">=</span>CATEGORICAL[k], ls<span class="op">=</span>LINE_STYLES[k], marker<span class="op">=</span>MARKERS[k], ms<span class="op">=</span><span class="dv">5</span>,</span>
+<span id="cb6-86"><a href="#cb6-86" aria-hidden="true" tabindex="-1"></a>             label<span class="op">=</span><span class="ss">f"</span><span class="sc">{</span>pc<span class="sc">}</span><span class="ss"> (</span><span class="sc">{</span>expl_cov[pc]<span class="sc">:.1%}</span><span class="ss">)"</span>)</span>
+<span id="cb6-87"><a href="#cb6-87" aria-hidden="true" tabindex="-1"></a>ax1.axhline(<span class="dv">0</span>, color<span class="op">=</span>REFERENCE_LINE, lw<span class="op">=</span><span class="fl">0.8</span>)</span>
+<span id="cb6-88"><a href="#cb6-88" aria-hidden="true" tabindex="-1"></a>ax1.set_xticks(X_POS, curve.columns)</span>
+<span id="cb6-89"><a href="#cb6-89" aria-hidden="true" tabindex="-1"></a>ax1.set_xlabel(<span class="st">"Tenor"</span>)</span>
+<span id="cb6-90"><a href="#cb6-90" aria-hidden="true" tabindex="-1"></a>ax1.set_ylabel(<span class="st">"Loading"</span>)</span>
+<span id="cb6-91"><a href="#cb6-91" aria-hidden="true" tabindex="-1"></a>ax1.legend()</span>
+<span id="cb6-92"><a href="#cb6-92" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-93"><a href="#cb6-93" aria-hidden="true" tabindex="-1"></a>top <span class="op">=</span> expl_cov.head(<span class="dv">5</span>)</span>
+<span id="cb6-94"><a href="#cb6-94" aria-hidden="true" tabindex="-1"></a>ax2.bar(top.index, top.values <span class="op">*</span> <span class="dv">100</span>, color<span class="op">=</span>CATEGORICAL[<span class="dv">0</span>], width<span class="op">=</span><span class="fl">0.6</span>)</span>
+<span id="cb6-95"><a href="#cb6-95" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> x, v <span class="kw">in</span> <span class="bu">zip</span>(top.index, top.values):</span>
+<span id="cb6-96"><a href="#cb6-96" aria-hidden="true" tabindex="-1"></a>    ax2.annotate(<span class="ss">f"</span><span class="sc">{</span>v<span class="sc">:.1%}</span><span class="ss">"</span>, (x, v <span class="op">*</span> <span class="dv">100</span>), xytext<span class="op">=</span>(<span class="dv">0</span>, <span class="dv">3</span>), textcoords<span class="op">=</span><span class="st">"offset points"</span>, ha<span class="op">=</span><span class="st">"center"</span>, fontsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb6-97"><a href="#cb6-97" aria-hidden="true" tabindex="-1"></a>ax2.set_ylabel(<span class="st">"</span><span class="sc">% o</span><span class="st">f variance"</span>)</span>
+<span id="cb6-98"><a href="#cb6-98" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb6-99"><a href="#cb6-99" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb6-100"><a href="#cb6-100" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb6-101"><a href="#cb6-101" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-102"><a href="#cb6-102" aria-hidden="true" tabindex="-1"></a><span class="fu">## Question</span></span>
+<span id="cb6-103"><a href="#cb6-103" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-104"><a href="#cb6-104" aria-hidden="true" tabindex="-1"></a>In *Market Risk Analysis* (Vol. II, ch. 2), Carol Alexander runs a PCA on 50 UK spot rates, from 6 months to 25 years, using daily data from January 2005 to December 2007. On the correlation matrix, the first component — the level — explains 91.05% of the variation, the second — the slope — 6.85%, and the third — the curvature — 1.33%. Together, **99.22%**. Repeating the exercise on the covariance matrix of the short curve (1 to 60 months), the first three components explain 99.45%.</span>
+<span id="cb6-105"><a href="#cb6-105" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-106"><a href="#cb6-106" aria-hidden="true" tabindex="-1"></a>The book also warns that this works best for major currencies: in emerging markets, less liquid and less correlated, three components usually explain less.</span>
+<span id="cb6-107"><a href="#cb6-107" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-108"><a href="#cb6-108" aria-hidden="true" tabindex="-1"></a>So, **does the same hold for the Brazilian curve?** It is a good test: a high and volatile policy rate, frequent fiscal and political shocks, and short rates that ranged from about 2% to above 17% in the sample. PCA on the Brazilian curve goes back at least to Varga &amp; Valli (2001); this post revisits it with 20 years of public B3 data and open code.</span>
+<span id="cb6-109"><a href="#cb6-109" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-110"><a href="#cb6-110" aria-hidden="true" tabindex="-1"></a><span class="fu">## Hypothesis / Theory</span></span>
+<span id="cb6-111"><a href="#cb6-111" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-112"><a href="#cb6-112" aria-hidden="true" tabindex="-1"></a>::: {.callout-tip collapse="true" title="Primer: what PCA does to a yield curve"}</span>
+<span id="cb6-113"><a href="#cb6-113" aria-hidden="true" tabindex="-1"></a>Every day, nine points of the curve move — but not independently. When the 5Y rate rises, the 7Y almost always rises too. **Principal Component Analysis** finds the few independent *shapes* of movement that, combined, reproduce the daily changes of every tenor.</span>
+<span id="cb6-114"><a href="#cb6-114" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-115"><a href="#cb6-115" aria-hidden="true" tabindex="-1"></a>Each component comes with two things:</span>
+<span id="cb6-116"><a href="#cb6-116" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-117"><a href="#cb6-117" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Loadings** — one weight per tenor: the *shape* of the movement. If PC1 moves by one unit, the 10Y rate moves by its loading on PC1. All weights with the same sign is a shift of the whole curve (*level*); weights changing sign along the curve is a *slope*; ends against the middle is a *curvature*.</span>
+<span id="cb6-118"><a href="#cb6-118" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Eigenvalue** — the variance of that component, i.e. how much of the daily movement of the curve the shape accounts for. Divided by the sum of all eigenvalues, it gives the share of variance explained.</span>
+<span id="cb6-119"><a href="#cb6-119" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-120"><a href="#cb6-120" aria-hidden="true" tabindex="-1"></a>Two practical choices matter. We use **daily changes, not levels**: rate levels trend for years and are not stationary, while daily changes are. And we pick a **covariance** matrix (each tenor keeps its own volatility) or a **correlation** matrix (every tenor standardized to the same volatility). As we will see, the choice changes the shapes.</span>
+<span id="cb6-121"><a href="#cb6-121" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-122"><a href="#cb6-122" aria-hidden="true" tabindex="-1"></a>**Go deeper:** Alexander, *Market Risk Analysis*, Vol. II, ch. 2; Litterman &amp; Scheinkman (1991), "Common Factors Affecting Bond Returns", *Journal of Fixed Income*.</span>
+<span id="cb6-123"><a href="#cb6-123" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb6-124"><a href="#cb6-124" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-125"><a href="#cb6-125" aria-hidden="true" tabindex="-1"></a>Let $\Sigma$ be the covariance matrix of the daily changes across the nine tenors. PCA decomposes it as</span>
+<span id="cb6-126"><a href="#cb6-126" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-127"><a href="#cb6-127" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb6-128"><a href="#cb6-128" aria-hidden="true" tabindex="-1"></a>\Sigma = W \Lambda W^\top, \qquad \text{share}_k = \frac{\lambda_k}{\sum_j \lambda_j}</span>
+<span id="cb6-129"><a href="#cb6-129" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb6-130"><a href="#cb6-130" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-131"><a href="#cb6-131" aria-hidden="true" tabindex="-1"></a>where each column of $W$ is an eigenvector — the **loadings** of one component — and $\Lambda$ is a diagonal matrix with the **eigenvalues** $\lambda_1 \ge \lambda_2 \ge \dots$: $\lambda_k$ is the variance of component $k$, so $\text{share}_k$ is the fraction of the total variance it explains.</span>
+<span id="cb6-132"><a href="#cb6-132" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-133"><a href="#cb6-133" aria-hidden="true" tabindex="-1"></a>**Hypothesis:** three components explain more than 95% of the daily changes, as in the UK. Two Brazil-specific effects could break this: the higher volatility, and a front end tied to the Selic, which may move apart from the rest of the curve.</span>
+<span id="cb6-134"><a href="#cb6-134" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-135"><a href="#cb6-135" aria-hidden="true" tabindex="-1"></a><span class="fu">## Data &amp; Method</span></span>
+<span id="cb6-136"><a href="#cb6-136" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-137"><a href="#cb6-137" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Source:** B3 daily reference-rate files (TS), curve PRE (DI × Pré).</span>
+<span id="cb6-138"><a href="#cb6-138" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Constant maturities:** 3M, 6M, 1Y, 2Y, 3Y, 4Y, 5Y, 7Y and 10Y. B3 publishes rates at fixed calendar-day vertices and at DI1 contract maturities, so each tenor is interpolated by **flat forward** (constant forward rate between vertices, 252 business-day basis), with no extrapolation.</span>
+<span id="cb6-139"><a href="#cb6-139" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Sample:** <span class="in">`{python} f"{curve.index[0]:%Y-%m-%d}"`</span> to <span class="in">`{python} f"{curve.index[-1]:%Y-%m-%d}"`</span>, <span class="in">`{python} f"{len(changes):,}"`</span> daily changes. It starts in 2006 because the 10Y tenor is only available from September 2005.</span>
+<span id="cb6-140"><a href="#cb6-140" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**PCA input:** daily changes in basis points. Main results on the covariance matrix; the correlation matrix for the comparison with the book.</span>
+<span id="cb6-141"><a href="#cb6-141" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-142"><a href="#cb6-142" aria-hidden="true" tabindex="-1"></a>Before running the PCA, it helps to look at what goes in. Brazilian rates are volatile, and much less so at the front end — the same shape as the UK curve in the book (Figure II.2.2), at a different scale.</span>
+<span id="cb6-143"><a href="#cb6-143" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-146"><a href="#cb6-146" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb6-147"><a href="#cb6-147" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-vol</span></span>
+<span id="cb6-148"><a href="#cb6-148" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Annualized volatility of daily changes by tenor. Lowest at the front end, anchored by the policy rate, and flat beyond 4Y — the same shape as UK spot rates in Alexander (Figure II.2.2), at roughly five times the level."</span></span>
+<span id="cb6-149"><a href="#cb6-149" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">9</span>, <span class="fl">3.2</span>))</span>
+<span id="cb6-150"><a href="#cb6-150" aria-hidden="true" tabindex="-1"></a>ax.plot(X_POS, vol, color<span class="op">=</span>CATEGORICAL[<span class="dv">0</span>], marker<span class="op">=</span>MARKERS[<span class="dv">0</span>], ms<span class="op">=</span><span class="dv">5</span>)</span>
+<span id="cb6-151"><a href="#cb6-151" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> x, v <span class="kw">in</span> <span class="bu">zip</span>(X_POS, vol):</span>
+<span id="cb6-152"><a href="#cb6-152" aria-hidden="true" tabindex="-1"></a>    ax.annotate(<span class="ss">f"</span><span class="sc">{</span>v<span class="sc">:.0f}</span><span class="ss">"</span>, (x, v), xytext<span class="op">=</span>(<span class="dv">0</span>, <span class="dv">6</span>), textcoords<span class="op">=</span><span class="st">"offset points"</span>, ha<span class="op">=</span><span class="st">"center"</span>, fontsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb6-153"><a href="#cb6-153" aria-hidden="true" tabindex="-1"></a>ax.set_xticks(X_POS, curve.columns)</span>
+<span id="cb6-154"><a href="#cb6-154" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">"Tenor"</span>)</span>
+<span id="cb6-155"><a href="#cb6-155" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">"Volatility (bp per year)"</span>)</span>
+<span id="cb6-156"><a href="#cb6-156" aria-hidden="true" tabindex="-1"></a>ax.set_ylim(<span class="dv">0</span>, vol.<span class="bu">max</span>() <span class="op">*</span> <span class="fl">1.15</span>)</span>
+<span id="cb6-157"><a href="#cb6-157" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb6-158"><a href="#cb6-158" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb6-159"><a href="#cb6-159" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-160"><a href="#cb6-160" aria-hidden="true" tabindex="-1"></a><span class="fu">## Results</span></span>
+<span id="cb6-161"><a href="#cb6-161" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-162"><a href="#cb6-162" aria-hidden="true" tabindex="-1"></a>**Three factors, as in the UK.** PC1 explains <span class="in">`{python} f"{expl_cov['PC1']:.1%}"`</span>, PC2 <span class="in">`{python} f"{expl_cov['PC2']:.1%}"`</span> and PC3 <span class="in">`{python} f"{expl_cov['PC3']:.1%}"`</span> of the daily variance (@fig-loadings), <span class="in">`{python} f"{expl_cov[:3].sum():.1%}"`</span> in total — close to the 99.45% of the book's UK covariance case, and well above the 95% the book would expect from an emerging market.</span>
+<span id="cb6-163"><a href="#cb6-163" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-164"><a href="#cb6-164" aria-hidden="true" tabindex="-1"></a>**The level factor lives at the long end.** On the covariance matrix, PC1's loading goes from <span class="in">`{python} f"{load_cov.loc['3M', 'PC1']:.2f}"`</span> at 3M to about 0.40 from 3Y onwards: a one-unit move in PC1 moves the 10Y about six times more than the 3M. This is not a Brazilian peculiarity. Alexander finds the same for UK rates on the covariance matrix (Figure II.2.4): the first eigenvector "decreases markedly at the short end" and does not represent a parallel shift. The front end is low-volatility because it follows the policy rate, and a covariance PCA weights each tenor by its volatility.</span>
+<span id="cb6-165"><a href="#cb6-165" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-166"><a href="#cb6-166" aria-hidden="true" tabindex="-1"></a>**Covariance vs. correlation tells two different stories.** Standardizing every tenor — using the correlation matrix — removes the volatility difference. PC1 becomes almost flat and explains <span class="in">`{python} f"{expl_corr['PC1']:.1%}"`</span>, while PC2 grows to <span class="in">`{python} f"{expl_corr['PC2']:.1%}"`</span> (@fig-cov-corr). The correlation shapes are those of the book's Figure II.2.3: a level slightly lower at the short end, a slope decreasing with maturity, and a curvature high at the short end, negative in the middle and rising again at the long end.</span>
+<span id="cb6-167"><a href="#cb6-167" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-170"><a href="#cb6-170" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb6-171"><a href="#cb6-171" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-cov-corr</span></span>
+<span id="cb6-172"><a href="#cb6-172" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Loadings from the covariance matrix (solid) and the correlation matrix (dashed). Standardizing flattens PC1; the correlation shapes match those of UK spot rates in Alexander (Figure II.2.3)."</span></span>
+<span id="cb6-173"><a href="#cb6-173" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">3</span>), sharey<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb6-174"><a href="#cb6-174" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k, ax <span class="kw">in</span> <span class="bu">enumerate</span>(axes):</span>
+<span id="cb6-175"><a href="#cb6-175" aria-hidden="true" tabindex="-1"></a>    pc <span class="op">=</span> <span class="ss">f"PC</span><span class="sc">{</span>k <span class="op">+</span> <span class="dv">1</span><span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb6-176"><a href="#cb6-176" aria-hidden="true" tabindex="-1"></a>    ax.plot(X_POS, load_cov[pc], color<span class="op">=</span>CATEGORICAL[<span class="dv">0</span>], ls<span class="op">=</span>LINE_STYLES[<span class="dv">0</span>], marker<span class="op">=</span>MARKERS[<span class="dv">0</span>], ms<span class="op">=</span><span class="dv">4</span>, label<span class="op">=</span><span class="st">"covariance"</span>)</span>
+<span id="cb6-177"><a href="#cb6-177" aria-hidden="true" tabindex="-1"></a>    ax.plot(X_POS, load_corr[pc], color<span class="op">=</span>CATEGORICAL[<span class="dv">1</span>], ls<span class="op">=</span>LINE_STYLES[<span class="dv">1</span>], marker<span class="op">=</span>MARKERS[<span class="dv">1</span>], ms<span class="op">=</span><span class="dv">4</span>, label<span class="op">=</span><span class="st">"correlation"</span>)</span>
+<span id="cb6-178"><a href="#cb6-178" aria-hidden="true" tabindex="-1"></a>    ax.axhline(<span class="dv">0</span>, color<span class="op">=</span>REFERENCE_LINE, lw<span class="op">=</span><span class="fl">0.8</span>)</span>
+<span id="cb6-179"><a href="#cb6-179" aria-hidden="true" tabindex="-1"></a>    ax.set_xticks(X_POS, curve.columns, fontsize<span class="op">=</span><span class="dv">7</span>)</span>
+<span id="cb6-180"><a href="#cb6-180" aria-hidden="true" tabindex="-1"></a>    ax.set_title(pc)</span>
+<span id="cb6-181"><a href="#cb6-181" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].legend(fontsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb6-182"><a href="#cb6-182" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb6-183"><a href="#cb6-183" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb6-184"><a href="#cb6-184" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb6-185"><a href="#cb6-185" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-186"><a href="#cb6-186" aria-hidden="true" tabindex="-1"></a>**Do the components really mean level, slope and curvature?** A quick check: correlate each component with a simple measure built by hand from the same daily changes (@tbl-proxies). We use the 1Y, not the 3M, as the short leg: the 3M is tied to the Copom decisions and would mix monetary policy into the slope. The book notes the same for the UK, where the shortest rates are "more influenced by government policies". Level and slope map cleanly onto PC1 and PC2. The hand-made curvature maps onto PC3 but also picks up part of PC1, because the level factor moves the belly (3Y) more than the average of the wings. The signs follow the book's convention: a rise in PC2 lifts the front end and lowers the long end, so it moves against the 10Y − 1Y spread.</span>
+<span id="cb6-187"><a href="#cb6-187" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-190"><a href="#cb6-190" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb6-191"><a href="#cb6-191" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: tbl-proxies</span></span>
+<span id="cb6-192"><a href="#cb6-192" aria-hidden="true" tabindex="-1"></a><span class="co">#| tbl-cap: "Correlation between the daily component scores and simple curve measures. Level and slope map onto one component each; the simple curvature measure also carries part of the level."</span></span>
+<span id="cb6-193"><a href="#cb6-193" aria-hidden="true" tabindex="-1"></a>proxies <span class="op">=</span> pd.DataFrame({</span>
+<span id="cb6-194"><a href="#cb6-194" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Level (mean of tenors)"</span>: changes.mean(axis<span class="op">=</span><span class="dv">1</span>),</span>
+<span id="cb6-195"><a href="#cb6-195" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Slope (10Y − 1Y)"</span>: changes[<span class="st">"10Y"</span>] <span class="op">-</span> changes[<span class="st">"1Y"</span>],</span>
+<span id="cb6-196"><a href="#cb6-196" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Curvature (1Y + 10Y − 2·3Y)"</span>: changes[<span class="st">"1Y"</span>] <span class="op">+</span> changes[<span class="st">"10Y"</span>] <span class="op">-</span> <span class="dv">2</span> <span class="op">*</span> changes[<span class="st">"3Y"</span>],</span>
+<span id="cb6-197"><a href="#cb6-197" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb6-198"><a href="#cb6-198" aria-hidden="true" tabindex="-1"></a>(pd.concat([scores[[<span class="st">"PC1"</span>, <span class="st">"PC2"</span>, <span class="st">"PC3"</span>]], proxies], axis<span class="op">=</span><span class="dv">1</span>).corr()</span>
+<span id="cb6-199"><a href="#cb6-199" aria-hidden="true" tabindex="-1"></a>   .loc[proxies.columns, [<span class="st">"PC1"</span>, <span class="st">"PC2"</span>, <span class="st">"PC3"</span>]].<span class="bu">round</span>(<span class="dv">2</span>))</span>
+<span id="cb6-200"><a href="#cb6-200" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb6-201"><a href="#cb6-201" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-202"><a href="#cb6-202" aria-hidden="true" tabindex="-1"></a>**Stable, but not constant.** In rolling one-year windows, the first three components explain more than 93% of the variance at every point, but PC1 alone ranges from about 75% to above 95% (@fig-rolling). The low point is the window from mid-2009 to mid-2010: the correlation between the 3M and the 10Y fell from <span class="in">`{python} f"{corr_3m_10y_full:.2f}"`</span> over the full sample to <span class="in">`{python} f"{corr_3m_10y_2010:.2f}"`</span>. The front end repriced on its own — the period leads into the 2010 tightening cycle — while the long end did not follow, and a single level factor could not describe both.</span>
+<span id="cb6-203"><a href="#cb6-203" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-206"><a href="#cb6-206" aria-hidden="true" tabindex="-1"></a><span class="in">```{python}</span></span>
+<span id="cb6-207"><a href="#cb6-207" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-rolling</span></span>
+<span id="cb6-208"><a href="#cb6-208" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Share of variance explained by the first components in rolling one-year windows. The three-factor structure is persistent; the dominance of the level factor is not."</span></span>
+<span id="cb6-209"><a href="#cb6-209" aria-hidden="true" tabindex="-1"></a>WINDOW <span class="op">=</span> <span class="dv">252</span></span>
+<span id="cb6-210"><a href="#cb6-210" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-211"><a href="#cb6-211" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> share_top(X):</span>
+<span id="cb6-212"><a href="#cb6-212" aria-hidden="true" tabindex="-1"></a>    eig <span class="op">=</span> np.sort(np.linalg.eigvalsh(np.cov((X <span class="op">-</span> X.mean()).values.T)))[::<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb6-213"><a href="#cb6-213" aria-hidden="true" tabindex="-1"></a>    eig <span class="op">=</span> eig <span class="op">/</span> eig.<span class="bu">sum</span>()</span>
+<span id="cb6-214"><a href="#cb6-214" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> pd.Series({<span class="st">"PC1"</span>: eig[<span class="dv">0</span>], <span class="st">"PC1–2"</span>: eig[:<span class="dv">2</span>].<span class="bu">sum</span>(), <span class="st">"PC1–3"</span>: eig[:<span class="dv">3</span>].<span class="bu">sum</span>()})</span>
+<span id="cb6-215"><a href="#cb6-215" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-216"><a href="#cb6-216" aria-hidden="true" tabindex="-1"></a>ends <span class="op">=</span> changes.index[WINDOW::<span class="dv">21</span>]</span>
+<span id="cb6-217"><a href="#cb6-217" aria-hidden="true" tabindex="-1"></a>rolling <span class="op">=</span> pd.DataFrame({d: share_top(changes.loc[:d].iloc[<span class="op">-</span>WINDOW:]) <span class="cf">for</span> d <span class="kw">in</span> ends}).T</span>
+<span id="cb6-218"><a href="#cb6-218" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-219"><a href="#cb6-219" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="fl">3.5</span>))</span>
+<span id="cb6-220"><a href="#cb6-220" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k, col <span class="kw">in</span> <span class="bu">enumerate</span>(rolling.columns):</span>
+<span id="cb6-221"><a href="#cb6-221" aria-hidden="true" tabindex="-1"></a>    ax.plot(rolling.index, rolling[col] <span class="op">*</span> <span class="dv">100</span>, color<span class="op">=</span>CATEGORICAL[k], ls<span class="op">=</span>LINE_STYLES[k], label<span class="op">=</span>col)</span>
+<span id="cb6-222"><a href="#cb6-222" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">"</span><span class="sc">% o</span><span class="st">f variance (1-year window)"</span>)</span>
+<span id="cb6-223"><a href="#cb6-223" aria-hidden="true" tabindex="-1"></a>ax.legend(loc<span class="op">=</span><span class="st">"lower left"</span>)</span>
+<span id="cb6-224"><a href="#cb6-224" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb6-225"><a href="#cb6-225" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb6-226"><a href="#cb6-226" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-227"><a href="#cb6-227" aria-hidden="true" tabindex="-1"></a><span class="fu">## Caveats</span></span>
+<span id="cb6-228"><a href="#cb6-228" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-229"><a href="#cb6-229" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Covariance or correlation.** The two give different shapes, as shown above. Covariance is the natural choice for risk and hedging, since it keeps the volatilities; correlation is the one to compare with the book's main case.</span>
+<span id="cb6-230"><a href="#cb6-230" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**October 2026.** The two largest daily moves in the sample (5 and 26 October 2026) followed the two rounds of the presidential election; the stress is visible in the volatility of the DI1 futures traded on B3 on those days. A covariance PCA is driven by large moves, so we re-ran it without the 1% of days with the largest moves: PC1's share goes from <span class="in">`{python} f"{expl_cov['PC1']:.1%}"`</span> to <span class="in">`{python} f"{expl_calm['PC1']:.1%}"`</span>, and the shapes do not change.</span>
+<span id="cb6-231"><a href="#cb6-231" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**A different setup from the book.** The UK case uses 50 tenors from 6M to 25Y over three years; ours uses 9 tenors from 3M to 10Y over twenty years. The percentages are comparable in spirit, not to the decimal.</span>
+<span id="cb6-232"><a href="#cb6-232" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Interpolated tenors.** In the early years, with fewer vertices, the long tenors rely on wider interpolation.</span>
+<span id="cb6-233"><a href="#cb6-233" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-234"><a href="#cb6-234" aria-hidden="true" tabindex="-1"></a><span class="fu">## Next questions</span></span>
+<span id="cb6-235"><a href="#cb6-235" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-236"><a href="#cb6-236" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Can the three factors hedge a DI position out of sample?** Estimate the PCA on a past window, build hedge ratios from the loadings, and measure how well the hedge holds in the following period. Then look for the estimation window that keeps the hedge stable — and test whether a learning approach can improve it.</span>
+<span id="cb6-237"><a href="#cb6-237" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-238"><a href="#cb6-238" aria-hidden="true" tabindex="-1"></a><span class="fu">## Reproduce</span></span>
+<span id="cb6-239"><a href="#cb6-239" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-240"><a href="#cb6-240" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Idea card:** <span class="co">[</span><span class="ot">issue #7</span><span class="co">](https://github.com/gustavobjorgefo/investigatingseries/issues/7)</span></span>
+<span id="cb6-241"><a href="#cb6-241" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Data:** <span class="in">`python posts/005-br-yield-curve-pca/build_dataset.py`</span> (B3 TS files → <span class="in">`data/processed/br_pre_curve_cm.parquet`</span>)</span>
+<span id="cb6-242"><a href="#cb6-242" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Exploration:** <span class="in">`posts/005-br-yield-curve-pca/explore.ipynb`</span></span>
+<span id="cb6-243"><a href="#cb6-243" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Code for this page:** expand the cells above</span>
+<span id="cb6-244"><a href="#cb6-244" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Environment:** Python 3.12, <span class="in">`requirements.txt`</span></span>
+<span id="cb6-245"><a href="#cb6-245" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-246"><a href="#cb6-246" aria-hidden="true" tabindex="-1"></a><span class="fu">## Appendix {.appendix}</span></span>
+<span id="cb6-247"><a href="#cb6-247" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-248"><a href="#cb6-248" aria-hidden="true" tabindex="-1"></a>**PCA, step by step.** Let $X$ be the $T \times n$ matrix of daily changes ($T$ days, $n = 9$ tenors), centered, and $V$ its covariance matrix.</span>
+<span id="cb6-249"><a href="#cb6-249" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-250"><a href="#cb6-250" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Eigen-decomposition.** $V = W \Lambda W^\top$, with $W$ orthogonal ($W^{-1} = W^\top$) and $\Lambda = \text{diag}(\lambda_1, \dots, \lambda_n)$, $\lambda_1 \ge \dots \ge \lambda_n \ge 0$.</span>
+<span id="cb6-251"><a href="#cb6-251" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Principal components.** $P = XW$. Column $k$ of $P$ is the time series of component $k$ (its *scores*). The components are uncorrelated, and the variance of component $k$ is $\lambda_k$.</span>
+<span id="cb6-252"><a href="#cb6-252" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Representation.** Since $W$ is orthogonal, $X = P W^\top$: each tenor's daily change is a weighted sum of the components, with the loadings as weights,</span>
+<span id="cb6-253"><a href="#cb6-253" aria-hidden="true" tabindex="-1"></a>   $$\Delta r_{i,t} = \sum_{k=1}^{n} w_{ik}\, P_{k,t} \approx \sum_{k=1}^{3} w_{ik}\, P_{k,t}.$$</span>
+<span id="cb6-254"><a href="#cb6-254" aria-hidden="true" tabindex="-1"></a>   Keeping only the first three columns gives the approximation, whose quality is the share of variance $\sum_{k \le 3} \lambda_k / \sum_j \lambda_j$.</span>
+<span id="cb6-255"><a href="#cb6-255" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>**Signs.** Each eigenvector is defined up to its sign ($w$ and $-w$ are both eigenvectors). We follow the book: PC1 positive, PC2 and PC3 positive at the short end.</span>
+<span id="cb6-256"><a href="#cb6-256" aria-hidden="true" tabindex="-1"></a><span class="ss">5. </span>**Correlation version.** With $D$ the diagonal matrix of standard deviations, the correlation matrix is $C = D^{-1} V D^{-1}$. The PCA of $C$ is the PCA of the standardized changes; its eigenvectors are not a simple transformation of those of $V$, which is why the two shapes differ.</span>
+<span id="cb6-257"><a href="#cb6-257" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-258"><a href="#cb6-258" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-259"><a href="#cb6-259" aria-hidden="true" tabindex="-1"></a>**Flat-forward interpolation.** B3 publishes the PRE curve at fixed calendar-day vertices and at DI1 contract maturities, not at constant maturities. Each tenor is interpolated between the two surrounding vertices $t_1 &lt; t &lt; t_2$ (in business days) assuming a constant forward rate between them, which means interpolating the log discount factor linearly:</span>
+<span id="cb6-260"><a href="#cb6-260" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-261"><a href="#cb6-261" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb6-262"><a href="#cb6-262" aria-hidden="true" tabindex="-1"></a>\ln D(t) = \ln D(t_1) + \frac{t - t_1}{t_2 - t_1}\,\big(\ln D(t_2) - \ln D(t_1)\big), \qquad D(t) = (1 + r_t)^{-t/252}</span>
+<span id="cb6-263"><a href="#cb6-263" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb6-264"><a href="#cb6-264" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-265"><a href="#cb6-265" aria-hidden="true" tabindex="-1"></a>Tenors beyond the longest available vertex are left empty rather than extrapolated. The implementation is <span class="in">`flat_forward()`</span> in <span class="in">`build_dataset.py`</span>.</span>
+</code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
+</div></div></div></div></div>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

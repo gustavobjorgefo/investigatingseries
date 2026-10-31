@@ -1,0 +1,11 @@
+/* Keep figures inside the text column */
+img.figure-img, .cell-output-display img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Investigating Series identity: Joker (2019) palette */
+:root { --is-teal: #00826B; --is-rust: #C83E26; }
+a { color: var(--is-teal); }
+a:hover { color: var(--is-rust); }
+.callout-tip { --bs-callout-color: var(--is-teal); }
