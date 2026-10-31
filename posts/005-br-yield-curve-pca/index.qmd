@@ -1,0 +1,253 @@
+---
+title: "Investigating Series #5 – PCA on the Brazilian Yield Curve"
+subtitle: "Three factors explain nearly 99% of the daily moves in the Brazilian PRE curve — the same structure Carol Alexander finds for UK rates, with about five times the volatility."
+date: "2026-11-01"
+categories: [paper-review, rates, pca, brazil]
+issue: 7
+
+---
+
+<!-- DRAFT v1 — corrections from the review applied. Rewrite freely in your own voice. -->
+
+```{python}
+#| label: setup
+#| include: false
+import sys
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+ROOT = Path.cwd()
+while not (ROOT / "_quarto.yml").exists():
+    ROOT = ROOT.parent
+sys.path.insert(0, str(ROOT / "src"))
+
+from investigating.style import apply_style, CATEGORICAL, LINE_STYLES, MARKERS, REFERENCE_LINE
+
+apply_style()
+
+START = "2006-01-01"
+curve = pd.read_parquet(ROOT / "data/processed/br_pre_curve_cm.parquet").loc[START:]
+changes = (curve.diff() * 100).dropna()                 # daily changes, bp
+X_POS = np.arange(curve.shape[1])                       # tenors at equal spacing on charts
+vol = changes.std() * np.sqrt(252)                      # annualized volatility, bp
+
+
+def pca(X: pd.DataFrame, standardize: bool = False):
+    """PCA of the covariance (or correlation) matrix of X. Signs follow Alexander (2008)."""
+    Z = (X - X.mean()) / X.std() if standardize else X - X.mean()
+    eigvals, eigvecs = np.linalg.eigh(np.cov(Z.values.T))
+    order = eigvals.argsort()[::-1]
+    eigvals, eigvecs = eigvals[order], eigvecs[:, order]
+    # Eigenvectors are defined up to their sign. Book convention:
+    # PC1 positive, PC2 and PC3 positive at the short end.
+    for k, anchor in [(0, slice(None)), (1, 0), (2, 0)]:
+        if np.mean(eigvecs[anchor, k]) < 0:
+            eigvecs[:, k] *= -1
+    cols = [f"PC{i + 1}" for i in range(X.shape[1])]
+    loadings = pd.DataFrame(eigvecs, index=X.columns, columns=cols)
+    explained = pd.Series(eigvals / eigvals.sum(), index=cols)
+    scores = pd.DataFrame(Z.values @ eigvecs, index=X.index, columns=cols)
+    return loadings, explained, scores
+
+
+load_cov, expl_cov, scores = pca(changes)
+load_corr, expl_corr, _ = pca(changes, standardize=True)
+
+# 2009-10: correlation between the front end and the long end
+w = changes.loc["2009-07":"2010-07"]
+corr_3m_10y_full, corr_3m_10y_2010 = changes["3M"].corr(changes["10Y"]), w["3M"].corr(w["10Y"])
+
+# Robustness: without the 1% of days with the largest moves
+largest_move = changes.abs().max(axis=1)
+_, expl_calm, _ = pca(changes[largest_move <= largest_move.quantile(0.99)])
+```
+
+## TL;DR
+
+- Over 2006–2026, **three principal components explain `{python} f"{expl_cov[:3].sum():.1%}"`** of the daily changes in the Brazilian PRE curve (3M to 10Y). Carol Alexander finds 99.2% for UK rates. Same structure: level, slope and curvature.
+- The Brazilian curve moves **about five times more** than the UK curve in the book (≈240 bp a year at the long end, against ≈50 bp), and still behaves like a highly correlated term structure. The book expected less from emerging markets.
+- **Covariance or correlation matters.** With the covariance matrix, the level factor is weak at the front end — the short rates are anchored by the policy rate (Selic). With the correlation matrix, it is almost flat. Both shapes match the book's UK results for the same choice.
+- The structure is stable over time. The exception is **2009–10**, when the front end and the long end stopped moving together and PC1's share fell to about 75%.
+
+```{python}
+#| label: fig-loadings
+#| fig-cap: "Loadings of the first three principal components (covariance of daily changes, 2006–2026) and their share of variance. PC1 is a level weighted towards the long end, PC2 a slope, PC3 a curvature."
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 3.8), gridspec_kw={"width_ratios": [2, 1]})
+for k in range(3):
+    pc = f"PC{k + 1}"
+    ax1.plot(X_POS, load_cov[pc], color=CATEGORICAL[k], ls=LINE_STYLES[k], marker=MARKERS[k], ms=5,
+             label=f"{pc} ({expl_cov[pc]:.1%})")
+ax1.axhline(0, color=REFERENCE_LINE, lw=0.8)
+ax1.set_xticks(X_POS, curve.columns)
+ax1.set_xlabel("Tenor")
+ax1.set_ylabel("Loading")
+ax1.legend()
+
+top = expl_cov.head(5)
+ax2.bar(top.index, top.values * 100, color=CATEGORICAL[0], width=0.6)
+for x, v in zip(top.index, top.values):
+    ax2.annotate(f"{v:.1%}", (x, v * 100), xytext=(0, 3), textcoords="offset points", ha="center", fontsize=8)
+ax2.set_ylabel("% of variance")
+plt.tight_layout()
+plt.show()
+```
+
+## Question
+
+In *Market Risk Analysis* (Vol. II, ch. 2), Carol Alexander runs a PCA on 50 UK spot rates, from 6 months to 25 years, using daily data from January 2005 to December 2007. On the correlation matrix, the first component — the level — explains 91.05% of the variation, the second — the slope — 6.85%, and the third — the curvature — 1.33%. Together, **99.22%**. Repeating the exercise on the covariance matrix of the short curve (1 to 60 months), the first three components explain 99.45%.
+
+The book also warns that this works best for major currencies: in emerging markets, less liquid and less correlated, three components usually explain less.
+
+So, **does the same hold for the Brazilian curve?** It is a good test: a high and volatile policy rate, frequent fiscal and political shocks, and short rates that ranged from about 2% to above 17% in the sample. PCA on the Brazilian curve goes back at least to Varga & Valli (2001); this post revisits it with 20 years of public B3 data and open code.
+
+## Hypothesis / Theory
+
+::: {.callout-tip collapse="true" title="Primer: what PCA does to a yield curve"}
+Every day, nine points of the curve move — but not independently. When the 5Y rate rises, the 7Y almost always rises too. **Principal Component Analysis** finds the few independent *shapes* of movement that, combined, reproduce the daily changes of every tenor.
+
+Each component comes with two things:
+
+- **Loadings** — one weight per tenor: the *shape* of the movement. If PC1 moves by one unit, the 10Y rate moves by its loading on PC1. All weights with the same sign is a shift of the whole curve (*level*); weights changing sign along the curve is a *slope*; ends against the middle is a *curvature*.
+- **Eigenvalue** — the variance of that component, i.e. how much of the daily movement of the curve the shape accounts for. Divided by the sum of all eigenvalues, it gives the share of variance explained.
+
+Two practical choices matter. We use **daily changes, not levels**: rate levels trend for years and are not stationary, while daily changes are. And we pick a **covariance** matrix (each tenor keeps its own volatility) or a **correlation** matrix (every tenor standardized to the same volatility). As we will see, the choice changes the shapes.
+
+**Go deeper:** Alexander, *Market Risk Analysis*, Vol. II, ch. 2; Litterman & Scheinkman (1991), "Common Factors Affecting Bond Returns", *Journal of Fixed Income*.
+:::
+
+Let $\Sigma$ be the covariance matrix of the daily changes across the nine tenors. PCA decomposes it as
+
+$$
+\Sigma = W \Lambda W^\top, \qquad \text{share}_k = \frac{\lambda_k}{\sum_j \lambda_j}
+$$
+
+where each column of $W$ is an eigenvector — the **loadings** of one component — and $\Lambda$ is a diagonal matrix with the **eigenvalues** $\lambda_1 \ge \lambda_2 \ge \dots$: $\lambda_k$ is the variance of component $k$, so $\text{share}_k$ is the fraction of the total variance it explains.
+
+**Hypothesis:** three components explain more than 95% of the daily changes, as in the UK. Two Brazil-specific effects could break this: the higher volatility, and a front end tied to the Selic, which may move apart from the rest of the curve.
+
+## Data & Method
+
+- **Source:** B3 daily reference-rate files (TS), curve PRE (DI × Pré).
+- **Constant maturities:** 3M, 6M, 1Y, 2Y, 3Y, 4Y, 5Y, 7Y and 10Y. B3 publishes rates at fixed calendar-day vertices and at DI1 contract maturities, so each tenor is interpolated by **flat forward** (constant forward rate between vertices, 252 business-day basis), with no extrapolation.
+- **Sample:** `{python} f"{curve.index[0]:%Y-%m-%d}"` to `{python} f"{curve.index[-1]:%Y-%m-%d}"`, `{python} f"{len(changes):,}"` daily changes. It starts in 2006 because the 10Y tenor is only available from September 2005.
+- **PCA input:** daily changes in basis points. Main results on the covariance matrix; the correlation matrix for the comparison with the book.
+
+Before running the PCA, it helps to look at what goes in. Brazilian rates are volatile, and much less so at the front end — the same shape as the UK curve in the book (Figure II.2.2), at a different scale.
+
+```{python}
+#| label: fig-vol
+#| fig-cap: "Annualized volatility of daily changes by tenor. Lowest at the front end, anchored by the policy rate, and flat beyond 4Y — the same shape as UK spot rates in Alexander (Figure II.2.2), at roughly five times the level."
+fig, ax = plt.subplots(figsize=(9, 3.2))
+ax.plot(X_POS, vol, color=CATEGORICAL[0], marker=MARKERS[0], ms=5)
+for x, v in zip(X_POS, vol):
+    ax.annotate(f"{v:.0f}", (x, v), xytext=(0, 6), textcoords="offset points", ha="center", fontsize=8)
+ax.set_xticks(X_POS, curve.columns)
+ax.set_xlabel("Tenor")
+ax.set_ylabel("Volatility (bp per year)")
+ax.set_ylim(0, vol.max() * 1.15)
+plt.show()
+```
+
+## Results
+
+**Three factors, as in the UK.** PC1 explains `{python} f"{expl_cov['PC1']:.1%}"`, PC2 `{python} f"{expl_cov['PC2']:.1%}"` and PC3 `{python} f"{expl_cov['PC3']:.1%}"` of the daily variance (@fig-loadings), `{python} f"{expl_cov[:3].sum():.1%}"` in total — close to the 99.45% of the book's UK covariance case, and well above the 95% the book would expect from an emerging market.
+
+**The level factor lives at the long end.** On the covariance matrix, PC1's loading goes from `{python} f"{load_cov.loc['3M', 'PC1']:.2f}"` at 3M to about 0.40 from 3Y onwards: a one-unit move in PC1 moves the 10Y about six times more than the 3M. This is not a Brazilian peculiarity. Alexander finds the same for UK rates on the covariance matrix (Figure II.2.4): the first eigenvector "decreases markedly at the short end" and does not represent a parallel shift. The front end is low-volatility because it follows the policy rate, and a covariance PCA weights each tenor by its volatility.
+
+**Covariance vs. correlation tells two different stories.** Standardizing every tenor — using the correlation matrix — removes the volatility difference. PC1 becomes almost flat and explains `{python} f"{expl_corr['PC1']:.1%}"`, while PC2 grows to `{python} f"{expl_corr['PC2']:.1%}"` (@fig-cov-corr). The correlation shapes are those of the book's Figure II.2.3: a level slightly lower at the short end, a slope decreasing with maturity, and a curvature high at the short end, negative in the middle and rising again at the long end.
+
+```{python}
+#| label: fig-cov-corr
+#| fig-cap: "Loadings from the covariance matrix (solid) and the correlation matrix (dashed). Standardizing flattens PC1; the correlation shapes match those of UK spot rates in Alexander (Figure II.2.3)."
+fig, axes = plt.subplots(1, 3, figsize=(10, 3), sharey=True)
+for k, ax in enumerate(axes):
+    pc = f"PC{k + 1}"
+    ax.plot(X_POS, load_cov[pc], color=CATEGORICAL[0], ls=LINE_STYLES[0], marker=MARKERS[0], ms=4, label="covariance")
+    ax.plot(X_POS, load_corr[pc], color=CATEGORICAL[1], ls=LINE_STYLES[1], marker=MARKERS[1], ms=4, label="correlation")
+    ax.axhline(0, color=REFERENCE_LINE, lw=0.8)
+    ax.set_xticks(X_POS, curve.columns, fontsize=7)
+    ax.set_title(pc)
+axes[0].legend(fontsize=8)
+plt.tight_layout()
+plt.show()
+```
+
+**Do the components really mean level, slope and curvature?** A quick check: correlate each component with a simple measure built by hand from the same daily changes (@tbl-proxies). We use the 1Y, not the 3M, as the short leg: the 3M is tied to the Copom decisions and would mix monetary policy into the slope. The book notes the same for the UK, where the shortest rates are "more influenced by government policies". Level and slope map cleanly onto PC1 and PC2. The hand-made curvature maps onto PC3 but also picks up part of PC1, because the level factor moves the belly (3Y) more than the average of the wings. The signs follow the book's convention: a rise in PC2 lifts the front end and lowers the long end, so it moves against the 10Y − 1Y spread.
+
+```{python}
+#| label: tbl-proxies
+#| tbl-cap: "Correlation between the daily component scores and simple curve measures. Level and slope map onto one component each; the simple curvature measure also carries part of the level."
+proxies = pd.DataFrame({
+    "Level (mean of tenors)": changes.mean(axis=1),
+    "Slope (10Y − 1Y)": changes["10Y"] - changes["1Y"],
+    "Curvature (1Y + 10Y − 2·3Y)": changes["1Y"] + changes["10Y"] - 2 * changes["3Y"],
+})
+(pd.concat([scores[["PC1", "PC2", "PC3"]], proxies], axis=1).corr()
+   .loc[proxies.columns, ["PC1", "PC2", "PC3"]].round(2))
+```
+
+**Stable, but not constant.** In rolling one-year windows, the first three components explain more than 93% of the variance at every point, but PC1 alone ranges from about 75% to above 95% (@fig-rolling). The low point is the window from mid-2009 to mid-2010: the correlation between the 3M and the 10Y fell from `{python} f"{corr_3m_10y_full:.2f}"` over the full sample to `{python} f"{corr_3m_10y_2010:.2f}"`. The front end repriced on its own — the period leads into the 2010 tightening cycle — while the long end did not follow, and a single level factor could not describe both.
+
+```{python}
+#| label: fig-rolling
+#| fig-cap: "Share of variance explained by the first components in rolling one-year windows. The three-factor structure is persistent; the dominance of the level factor is not."
+WINDOW = 252
+
+def share_top(X):
+    eig = np.sort(np.linalg.eigvalsh(np.cov((X - X.mean()).values.T)))[::-1]
+    eig = eig / eig.sum()
+    return pd.Series({"PC1": eig[0], "PC1–2": eig[:2].sum(), "PC1–3": eig[:3].sum()})
+
+ends = changes.index[WINDOW::21]
+rolling = pd.DataFrame({d: share_top(changes.loc[:d].iloc[-WINDOW:]) for d in ends}).T
+
+fig, ax = plt.subplots(figsize=(10, 3.5))
+for k, col in enumerate(rolling.columns):
+    ax.plot(rolling.index, rolling[col] * 100, color=CATEGORICAL[k], ls=LINE_STYLES[k], label=col)
+ax.set_ylabel("% of variance (1-year window)")
+ax.legend(loc="lower left")
+plt.show()
+```
+
+## Caveats
+
+- **Covariance or correlation.** The two give different shapes, as shown above. Covariance is the natural choice for risk and hedging, since it keeps the volatilities; correlation is the one to compare with the book's main case.
+- **October 2026.** The two largest daily moves in the sample (5 and 26 October 2026) followed the two rounds of the presidential election; the stress is visible in the volatility of the DI1 futures traded on B3 on those days. A covariance PCA is driven by large moves, so we re-ran it without the 1% of days with the largest moves: PC1's share goes from `{python} f"{expl_cov['PC1']:.1%}"` to `{python} f"{expl_calm['PC1']:.1%}"`, and the shapes do not change.
+- **A different setup from the book.** The UK case uses 50 tenors from 6M to 25Y over three years; ours uses 9 tenors from 3M to 10Y over twenty years. The percentages are comparable in spirit, not to the decimal.
+- **Interpolated tenors.** In the early years, with fewer vertices, the long tenors rely on wider interpolation.
+
+## Next questions
+
+- **Can the three factors hedge a DI position out of sample?** Estimate the PCA on a past window, build hedge ratios from the loadings, and measure how well the hedge holds in the following period. Then look for the estimation window that keeps the hedge stable — and test whether a learning approach can improve it.
+
+## Reproduce
+
+- **Idea card:** [issue #7](https://github.com/gustavobjorgefo/investigatingseries/issues/7)
+- **Data:** `python posts/005-br-yield-curve-pca/build_dataset.py` (B3 TS files → `data/processed/br_pre_curve_cm.parquet`)
+- **Exploration:** `posts/005-br-yield-curve-pca/explore.ipynb`
+- **Code for this page:** expand the cells above
+- **Environment:** Python 3.12, `requirements.txt`
+
+## Appendix {.appendix}
+
+**PCA, step by step.** Let $X$ be the $T \times n$ matrix of daily changes ($T$ days, $n = 9$ tenors), centered, and $V$ its covariance matrix.
+
+1. **Eigen-decomposition.** $V = W \Lambda W^\top$, with $W$ orthogonal ($W^{-1} = W^\top$) and $\Lambda = \text{diag}(\lambda_1, \dots, \lambda_n)$, $\lambda_1 \ge \dots \ge \lambda_n \ge 0$.
+2. **Principal components.** $P = XW$. Column $k$ of $P$ is the time series of component $k$ (its *scores*). The components are uncorrelated, and the variance of component $k$ is $\lambda_k$.
+3. **Representation.** Since $W$ is orthogonal, $X = P W^\top$: each tenor's daily change is a weighted sum of the components, with the loadings as weights,
+   $$\Delta r_{i,t} = \sum_{k=1}^{n} w_{ik}\, P_{k,t} \approx \sum_{k=1}^{3} w_{ik}\, P_{k,t}.$$
+   Keeping only the first three columns gives the approximation, whose quality is the share of variance $\sum_{k \le 3} \lambda_k / \sum_j \lambda_j$.
+4. **Signs.** Each eigenvector is defined up to its sign ($w$ and $-w$ are both eigenvectors). We follow the book: PC1 positive, PC2 and PC3 positive at the short end.
+5. **Correlation version.** With $D$ the diagonal matrix of standard deviations, the correlation matrix is $C = D^{-1} V D^{-1}$. The PCA of $C$ is the PCA of the standardized changes; its eigenvectors are not a simple transformation of those of $V$, which is why the two shapes differ.
+
+
+**Flat-forward interpolation.** B3 publishes the PRE curve at fixed calendar-day vertices and at DI1 contract maturities, not at constant maturities. Each tenor is interpolated between the two surrounding vertices $t_1 < t < t_2$ (in business days) assuming a constant forward rate between them, which means interpolating the log discount factor linearly:
+
+$$
+\ln D(t) = \ln D(t_1) + \frac{t - t_1}{t_2 - t_1}\,\big(\ln D(t_2) - \ln D(t_1)\big), \qquad D(t) = (1 + r_t)^{-t/252}
+$$
+
+Tenors beyond the longest available vertex are left empty rather than extrapolated. The implementation is `flat_forward()` in `build_dataset.py`.

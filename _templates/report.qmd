@@ -31,6 +31,15 @@ HOW TO USE
 
 <!-- From the card: Hypothesis. Intuition first, then the formula. -->
 
+<!-- OPTIONAL primer for readers new to the topic (≤ ~250 words, ≤ 1 figure).
+     Explain only what is needed to read THIS post's results; end with "Go deeper" + reference.
+     If it grows or repeats across posts, promote it to its own `primer` post.
+::: {.callout-tip collapse="true" title="Primer: ..."}
+...
+**Go deeper:** Author, *Book*, ch. X.
+:::
+-->
+
 ## Data & Method
 
 <!-- From the card: Minimal experiment. Data, period, parameters, assumptions.
@@ -38,10 +47,22 @@ HOW TO USE
 
 ```{python}
 #| label: setup
-#| code-summary: "Setup"
+#| include: false
+import sys
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+
+ROOT = Path.cwd()
+while not (ROOT / "_quarto.yml").exists():
+    ROOT = ROOT.parent
+sys.path.insert(0, str(ROOT / "src"))
+
+from investigating.style import apply_style, CATEGORICAL, LINE_STYLES, MARKERS, REFERENCE_LINE
+
+apply_style()
 ```
 
 ## Results
