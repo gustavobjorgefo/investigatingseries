@@ -1,10 +1,10 @@
 ---
 title: "Investigating Series #5 – PCA on the Brazilian Yield Curve"
 subtitle: "Three factors explain nearly 99% of the daily moves in the Brazilian PRE curve — the same structure Carol Alexander finds for UK rates, with about five times the volatility."
-date: "2026-10-31"
+date: "2026-11-01"
 categories: [paper-review, rates, pca, brazil]
 issue: 7
-draft: true
+
 ---
 
 <!-- DRAFT v1 — corrections from the review applied. Rewrite freely in your own voice. -->
