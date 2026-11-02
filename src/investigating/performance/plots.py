@@ -9,6 +9,7 @@ ibexQuant's future ``plotting`` module (only the style import changes):
 - ``ax=None`` draws a new figure; passing an ``ax`` draws into it, so the same
   function fills a panel of the tearsheet (``export.py``);
 - returns the ``Axes``, so the post can still adjust it (``ax.set_title(...)``);
+- ``legend=False`` hides the legend (in a grid, one legend is enough);
 - computes with ``_analytics`` and only draws: no number is calculated here.
 
 The benchmark, when there is one, is named by ``benchmark="column"``: it is
@@ -17,6 +18,9 @@ palette in order (teal, rust, purple, mustard) with its own line style, so no
 series depends on color alone.
 
 Call ``investigating.style.apply_style()`` once at the top of the post first.
+Colors are read from the active theme when a figure is drawn, so the same
+function draws a light figure for the post or a dark one for a social card
+(inside ``style_context("dark")``).
 """
 
 from __future__ import annotations
@@ -41,19 +45,10 @@ from investigating.performance._analytics import (
 )
 
 # The only coupling to the blog's identity: swap this import to reuse the module elsewhere.
-from investigating.style import (
-    BENCHMARK,
-    BENCHMARK_LINE_STYLE,
-    CATEGORICAL,
-    DIVERGING,
-    LINE_STYLES,
-    REFERENCE_LINE,
-    TEXT,
-    WHITE,
-)
+from investigating.style import BENCHMARK_LINE_STYLE, LINE_STYLES, theme
 
 DRAWDOWN_FILL_ALPHA = 0.18
-HEATMAP_TEXT_THRESHOLD = 0.6  # |value| / max |value| above which cell text turns white
+HEATMAP_TEXT_THRESHOLD = 0.6  # |value| / max |value| above which cell text switches color
 
 
 # =============================================================================
@@ -77,14 +72,15 @@ def _axes(ax: Axes | None) -> Axes:
 
 def _line_styles(columns: pd.Index, benchmark: str | None) -> dict[str, dict[str, object]]:
     """Color and line style of each column: the benchmark gray and dashed, the others in order."""
+    palette = theme().categorical
     styles: dict[str, dict[str, object]] = {}
     others = [column for column in columns if column != benchmark]
     for i, column in enumerate(others):
-        styles[column] = {"color": CATEGORICAL[i % len(CATEGORICAL)], "linestyle": LINE_STYLES[i % len(LINE_STYLES)]}
+        styles[column] = {"color": palette[i % len(palette)], "linestyle": LINE_STYLES[i % len(LINE_STYLES)]}
     if benchmark is not None:
         if benchmark not in columns:
             raise KeyError(f"benchmark {benchmark!r} is not a column of returns.")
-        styles[benchmark] = {"color": BENCHMARK, "linestyle": BENCHMARK_LINE_STYLE}
+        styles[benchmark] = {"color": theme().benchmark, "linestyle": BENCHMARK_LINE_STYLE}
     return styles
 
 
@@ -112,7 +108,17 @@ def _legend(ax: Axes, columns: pd.Index, benchmark: str | None, *, loc: str = "u
         return
     handles = dict(zip(*reversed(ax.get_legend_handles_labels()), strict=True))
     order = [c for c in columns if c != benchmark] + ([benchmark] if benchmark in columns else [])
-    ax.legend([handles[c] for c in order], order, loc=loc)
+    # A box in the background color, without border: lines passing behind the
+    # legend are hidden instead of crossing the text.
+    ax.legend(
+        [handles[c] for c in order], order, loc=loc,
+        frameon=True, facecolor=theme().background, edgecolor="none", framealpha=0.85,
+    )
+
+
+def _full_period(ax: Axes, frame: pd.DataFrame) -> None:
+    """Show the whole period even when the first values are NaN (rolling warm-up), to align with other figures."""
+    ax.set_xlim(frame.index[0], frame.index[-1])
 
 
 # =============================================================================
@@ -125,6 +131,7 @@ def plot_cumulative(
     *,
     benchmark: str | None = None,
     log_scale: bool = False,
+    legend: bool = True,
     ax: Axes | None = None,
 ) -> Axes:
     """
@@ -142,7 +149,7 @@ def plot_cumulative(
         equity = equity_curve(frame[column].dropna())
         ax.plot(equity.index, equity.to_numpy(), label=column, **styles[column])
 
-    ax.axhline(1.0, color=REFERENCE_LINE, linewidth=0.8, zorder=0)
+    ax.axhline(1.0, color=theme().reference_line, linewidth=0.8, zorder=0)
     if log_scale:
         ax.set_yscale("log")
         # Default log ticks sit only at powers of 10 (1, 10, 100), too sparse for
@@ -152,7 +159,8 @@ def plot_cumulative(
     ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y - 1:+.0%}"))
     ax.set_title("Cumulative return" + (" (log scale)" if log_scale else ""))
     _date_axis(ax)
-    _legend(ax, frame.columns, benchmark)
+    if legend:
+        _legend(ax, frame.columns, benchmark)
     return ax
 
 
@@ -160,6 +168,7 @@ def plot_drawdown(
     returns: pd.Series | pd.DataFrame,
     *,
     benchmark: str | None = None,
+    legend: bool = True,
     ax: Axes | None = None,
 ) -> Axes:
     """
@@ -182,11 +191,12 @@ def plot_drawdown(
                 color=styles[column]["color"], alpha=DRAWDOWN_FILL_ALPHA, linewidth=0,
             )
 
-    ax.axhline(0.0, color=REFERENCE_LINE, linewidth=0.8, zorder=0)
+    ax.axhline(0.0, color=theme().reference_line, linewidth=0.8, zorder=0)
     ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0, decimals=0))
     ax.set_title("Drawdown")
     _date_axis(ax)
-    _legend(ax, frame.columns, benchmark, loc="lower left")
+    if legend:
+        _legend(ax, frame.columns, benchmark, loc="lower left")
     return ax
 
 
@@ -200,7 +210,7 @@ def plot_monthly_heatmap(
     Monthly returns of one series as a year x month heatmap.
 
     Diverging colors centered on zero: rust for losses, teal for gains, a
-    light neutral for months near 0%. The scale is symmetric, so equal gains
+    neutral for months near 0% (light or dark, following the theme). The scale is symmetric, so equal gains
     and losses get equally strong colors. Each cell shows its value.
     """
     if isinstance(returns, pd.DataFrame):
@@ -213,21 +223,21 @@ def plot_monthly_heatmap(
         _, ax = plt.subplots(figsize=(9.0, 0.9 + 0.32 * len(table)))
 
     limit = float(np.nanmax(np.abs(values))) or 1.0
-    ax.imshow(values, cmap=DIVERGING, norm=TwoSlopeNorm(vcenter=0.0, vmin=-limit, vmax=limit), aspect="auto")
+    ax.imshow(values, cmap=theme().diverging, norm=TwoSlopeNorm(vcenter=0.0, vmin=-limit, vmax=limit), aspect="auto")
 
     for (row, col), value in np.ndenumerate(values):
         if np.isnan(value):
             continue
         strong = abs(value) / limit > HEATMAP_TEXT_THRESHOLD
         ax.text(
-            col, row, f"{value:.{decimals}%}",
-            ha="center", va="center", fontsize=7.5, color=WHITE if strong else TEXT,
+            col, row, _percent(value, decimals),
+            ha="center", va="center", fontsize=7.5, color=theme().text_on_strong if strong else theme().text,
         )
 
-    # White gaps between cells instead of a grid.
+    # Background-colored gaps between cells instead of a grid.
     ax.set_xticks(np.arange(-0.5, 12, 1), minor=True)
     ax.set_yticks(np.arange(-0.5, len(table), 1), minor=True)
-    ax.grid(which="minor", color=WHITE, linewidth=2)
+    ax.grid(which="minor", color=theme().background, linewidth=2)
     ax.grid(which="major", visible=False)
     ax.tick_params(which="both", length=0)
     for spine in ax.spines.values():
@@ -245,6 +255,7 @@ def plot_rolling_sharpe(
     *,
     window: int = ROLLING_6M,
     benchmark: str | None = None,
+    legend: bool = True,
     ax: Axes | None = None,
 ) -> Axes:
     """Sharpe ratio over a trailing window (default 126 sessions, about six months)."""
@@ -256,10 +267,12 @@ def plot_rolling_sharpe(
     for column in _draw_order(frame.columns, benchmark):
         ax.plot(rolling.index, rolling[column].to_numpy(), label=column, linewidth=1.2, **styles[column])
 
-    ax.axhline(0.0, color=REFERENCE_LINE, linewidth=0.8, zorder=0)
+    ax.axhline(0.0, color=theme().reference_line, linewidth=0.8, zorder=0)
     ax.set_title(f"Rolling Sharpe ratio ({_window_label(window)})")
     _date_axis(ax)
-    _legend(ax, frame.columns, benchmark)
+    _full_period(ax, frame)
+    if legend:
+        _legend(ax, frame.columns, benchmark)
     return ax
 
 
@@ -268,6 +281,7 @@ def plot_rolling_volatility(
     *,
     window: int = ROLLING_6M,
     benchmark: str | None = None,
+    legend: bool = True,
     ax: Axes | None = None,
 ) -> Axes:
     """Annualized volatility over a trailing window (default 126 sessions, about six months)."""
@@ -283,7 +297,9 @@ def plot_rolling_volatility(
     ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0, decimals=0))
     ax.set_title(f"Rolling volatility, annualized ({_window_label(window)})")
     _date_axis(ax)
-    _legend(ax, frame.columns, benchmark)
+    _full_period(ax, frame)
+    if legend:
+        _legend(ax, frame.columns, benchmark)
     return ax
 
 
@@ -291,3 +307,9 @@ def _window_label(window: int) -> str:
     """126 -> "6M", 252 -> "12M", 63 -> "3M"; other sizes in sessions."""
     months = window / 21
     return f"{months:.0f}M" if months.is_integer() else f"{window} sessions"
+
+
+def _percent(value: float, decimals: int) -> str:
+    """Format as a percentage, without the "-0%" that rounding leaves for small losses."""
+    text = f"{value:.{decimals}%}"
+    return text[1:] if text.startswith("-") and float(text[1:-1]) == 0 else text

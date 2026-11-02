@@ -14,7 +14,8 @@ Modules:
 - ``_analytics`` — the numbers (adapted from ibexQuant, QuantStats conventions).
 - ``table`` — the metrics table (raw floats, then formatted strings).
 - ``plots`` — the figures (one function per figure, each accepting ``ax=``).
-- ``export`` — the images for social media (next step).
+- ``export`` — image files for outside the blog: PNGs, the 2 x 2 tearsheet and
+  the social media cards (dark by default).
 """
 
 from investigating.performance._analytics import (
@@ -49,6 +50,14 @@ from investigating.performance.table import (
     metrics_table,
     performance_metrics,
 )
+from investigating.performance.export import (
+    CARD_SQUARE,
+    CARD_WIDE,
+    card,
+    save_figure,
+    tearsheet,
+    tearsheet_card,
+)
 from investigating.performance.plots import (
     plot_cumulative,
     plot_drawdown,
@@ -58,12 +67,15 @@ from investigating.performance.plots import (
 )
 
 __all__ = [
+    "CARD_SQUARE",
+    "CARD_WIDE",
     "METRICS",
     "ROLLING_6M",
     "TRADING_DAYS",
     "annualized_volatility",
     "cagr",
     "calmar_ratio",
+    "card",
     "cumulative_returns",
     "drawdown",
     "drawdown_periods",
@@ -85,9 +97,12 @@ __all__ = [
     "plot_rolling_volatility",
     "rolling_sharpe",
     "rolling_volatility",
+    "save_figure",
     "sharpe_ratio",
     "skewness",
     "sortino_ratio",
+    "tearsheet",
+    "tearsheet_card",
     "time_in_market",
     "to_simple_returns",
     "total_return",
