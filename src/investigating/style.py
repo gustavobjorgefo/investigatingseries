@@ -25,6 +25,7 @@ from typing import Final
 import matplotlib as mpl
 from cycler import cycler
 from matplotlib import font_manager
+from matplotlib.colors import LinearSegmentedColormap
 
 # --- Palette: Joker (2019) ---------------------------------------------------
 # Validated as a categorical sequence (in this order) for colorblind separation,
@@ -51,6 +52,25 @@ TEXT: Final[str] = INK
 AXIS: Final[str] = SLATE
 GRID: Final[str] = ASH
 REFERENCE_LINE: Final[str] = STEEL
+
+# --- Semantic colors (performance report) ------------------------------------
+# Charts say "strategy" and "benchmark", never "teal" and "gray", so a palette
+# change is one edit here. The benchmark is a neutral, so the strategy stands out.
+# Its gray is lighter than STEEL on purpose: STEEL has almost the same lightness
+# as the teal and the two merge for colorblind readers (checked: CVD ΔE 2.8 vs
+# 9.3 for this gray, contrast on white still >= 3:1). Always drawn dashed too.
+STRATEGY: Final[str] = JOKER_TEAL
+BENCHMARK: Final[str] = "#8A919C"
+BENCHMARK_LINE_STYLE: Final[str] = "--"
+
+# --- Diverging colormap (polarity: losses vs. gains) --------------------------
+# Two poles from the palette and a light neutral midpoint (never a hue at zero):
+# rust for negative, teal for positive. Used by the monthly returns heatmap and
+# by any signed matrix (e.g. correlations in post #3).
+DIVERGING_MIDPOINT: Final[str] = "#F1F2F4"
+DIVERGING: Final[LinearSegmentedColormap] = LinearSegmentedColormap.from_list(
+    "joker_diverging", [JOKER_RUST, DIVERGING_MIDPOINT, JOKER_TEAL]
+)
 
 # --- Typography & geometry ---------------------------------------------------
 FONT_FAMILY: Final[str] = "IBM Plex Sans"

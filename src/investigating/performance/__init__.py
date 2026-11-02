@@ -13,7 +13,8 @@ Modules:
 
 - ``_analytics`` — the numbers (adapted from ibexQuant, QuantStats conventions).
 - ``table`` — the metrics table (raw floats, then formatted strings).
-- ``plots``, ``export`` — the figures and the images for social media (next steps).
+- ``plots`` — the figures (one function per figure, each accepting ``ax=``).
+- ``export`` — the images for social media (next step).
 """
 
 from investigating.performance._analytics import (
@@ -48,6 +49,13 @@ from investigating.performance.table import (
     metrics_table,
     performance_metrics,
 )
+from investigating.performance.plots import (
+    plot_cumulative,
+    plot_drawdown,
+    plot_monthly_heatmap,
+    plot_rolling_sharpe,
+    plot_rolling_volatility,
+)
 
 __all__ = [
     "METRICS",
@@ -70,6 +78,11 @@ __all__ = [
     "monthly_returns_table",
     "period_returns",
     "performance_metrics",
+    "plot_cumulative",
+    "plot_drawdown",
+    "plot_monthly_heatmap",
+    "plot_rolling_sharpe",
+    "plot_rolling_volatility",
     "rolling_sharpe",
     "rolling_volatility",
     "sharpe_ratio",
