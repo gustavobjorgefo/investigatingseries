@@ -204,47 +204,72 @@ def plot_monthly_heatmap(
     returns: pd.Series,
     *,
     decimals: int = 1,
+    show_year: bool = True,
     ax: Axes | None = None,
 ) -> Axes:
     """
-    Monthly returns of one series as a year x month heatmap.
+    Monthly returns of one series as a year x month heatmap, plus the year's return.
 
     Diverging colors centered on zero: rust for losses, teal for gains, a
-    neutral for months near 0% (light or dark, following the theme). The scale is symmetric, so equal gains
-    and losses get equally strong colors. Each cell shows its value.
+    neutral for months near 0% (light or dark, following the theme). The scale
+    is symmetric, so equal gains and losses get equally strong colors. Each cell
+    shows its value.
+
+    With ``show_year=True`` a last column, set apart by a gap, shows the
+    compounded return of each year. It has **its own color scale**: a year
+    moves much more than a month, and on a shared scale every month would fade.
     """
     if isinstance(returns, pd.DataFrame):
         raise TypeError("plot_monthly_heatmap takes a single series; pass returns['column'].")
-    table = monthly_returns_table(returns.dropna()).drop(columns="total")
-    values = table.to_numpy(dtype=float)
+    table = monthly_returns_table(returns.dropna())
+    months = table.drop(columns="total").to_numpy(dtype=float)
+    n_years = len(table)
 
     if ax is None:
         # Height grows with the number of years, so cells stay legible.
-        _, ax = plt.subplots(figsize=(9.0, 0.9 + 0.32 * len(table)))
+        _, ax = plt.subplots(figsize=(9.0, 0.9 + 0.32 * n_years))
 
-    limit = float(np.nanmax(np.abs(values))) or 1.0
-    ax.imshow(values, cmap=theme().diverging, norm=TwoSlopeNorm(vcenter=0.0, vmin=-limit, vmax=limit), aspect="auto")
+    # Columns as (x position, values): the 12 months at 0..11, the year after a gap.
+    columns = [(float(m), months[:, m]) for m in range(12)]
+    gap = 0.35
+    if show_year:
+        columns.append((12.0 + gap, table["total"].to_numpy(dtype=float)))
 
-    for (row, col), value in np.ndenumerate(values):
-        if np.isnan(value):
-            continue
-        strong = abs(value) / limit > HEATMAP_TEXT_THRESHOLD
-        ax.text(
-            col, row, _percent(value, decimals),
-            ha="center", va="center", fontsize=7.5, color=theme().text_on_strong if strong else theme().text,
+    month_limit = float(np.nanmax(np.abs(months))) or 1.0
+    year_limit = float(np.nanmax(np.abs(table["total"]))) or 1.0
+
+    for x, values in columns:
+        limit = year_limit if x > 11.5 else month_limit
+        ax.imshow(
+            values[:, None], cmap=theme().diverging,
+            norm=TwoSlopeNorm(vcenter=0.0, vmin=-limit, vmax=limit),
+            extent=(x - 0.5, x + 0.5, n_years - 0.5, -0.5), aspect="auto",
         )
+        for row, value in enumerate(values):
+            if np.isnan(value):
+                continue
+            strong = abs(value) / limit > HEATMAP_TEXT_THRESHOLD
+            ax.text(
+                x, row, _percent(value, decimals),
+                ha="center", va="center", fontsize=7.5,
+                color=theme().text_on_strong if strong else theme().text,
+            )
 
     # Background-colored gaps between cells instead of a grid.
-    ax.set_xticks(np.arange(-0.5, 12, 1), minor=True)
-    ax.set_yticks(np.arange(-0.5, len(table), 1), minor=True)
+    edges = [x + side for x, _ in columns for side in (-0.5, 0.5)]
+    ax.set_xticks(sorted(set(edges)), minor=True)
+    ax.set_yticks(np.arange(-0.5, n_years, 1), minor=True)
     ax.grid(which="minor", color=theme().background, linewidth=2)
     ax.grid(which="major", visible=False)
     ax.tick_params(which="both", length=0)
     for spine in ax.spines.values():
         spine.set_visible(False)
 
-    ax.set_xticks(range(12), [calendar.month_abbr[m] for m in range(1, 13)])
-    ax.set_yticks(range(len(table)), table.index.astype(str))
+    labels = [calendar.month_abbr[m] for m in range(1, 13)] + (["Year"] if show_year else [])
+    ax.set_xticks([x for x, _ in columns], labels)
+    ax.set_xlim(-0.5, columns[-1][0] + 0.5)
+    ax.set_ylim(n_years - 0.5, -0.5)
+    ax.set_yticks(range(n_years), table.index.astype(str))
     ax.xaxis.tick_top()
     ax.set_title("Monthly returns", pad=18)
     return ax
