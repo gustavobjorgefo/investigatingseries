@@ -1,0 +1,79 @@
+<!--
+PERFORMANCE REPORT BLOCK — the standard table + figures of a backtest.
+
+How to use, in a post's index.qmd:
+
+1. In an earlier chunk, define:
+     returns    pd.DataFrame of daily SIMPLE returns, one column per series,
+                the strategy first (e.g. ["Strategy", "VALE3"]).
+                From log returns: returns = to_simple_returns(log_returns)
+     benchmark  name of the benchmark column, or None
+2. Where the report should appear, add this line (outside any chunk), with
+   TWO braces on each side (written here with three, the escaped form, because
+   Quarto expands shortcodes even inside comments and this file would include
+   itself forever):
+     {{{< include /_templates/_performance.qmd >}}}
+
+The block brings its own imports. Its labels (tbl-performance, fig-perf-*) can
+be cited in the text, e.g. "the drawdown (@fig-perf-drawdown) shows ...".
+The captions are generic: to comment on a figure in its own words, skip the
+block and call the plot functions directly in the post.
+-->
+
+```{python}
+#| label: perf-setup
+#| include: false
+import matplotlib.pyplot as plt
+
+from investigating.performance import (
+    metrics_table,
+    performance_metrics,
+    plot_cumulative,
+    plot_drawdown,
+    plot_monthly_heatmap,
+    plot_rolling_sharpe,
+    plot_rolling_volatility,
+)
+
+perf_benchmark = globals().get("benchmark")
+perf_strategy = next(c for c in returns.columns if c != perf_benchmark)
+perf_metrics = performance_metrics(returns)
+perf_period = f"{perf_metrics.attrs['start']:%b %Y} – {perf_metrics.attrs['end']:%b %Y}"
+```
+
+```{python}
+#| label: tbl-performance
+#| tbl-cap: "Performance metrics over the common period. Daily simple returns, 252 sessions per year, risk-free rate of zero."
+metrics_table(returns)
+```
+
+```{python}
+#| label: fig-perf-cumulative
+#| fig-cap: "Cumulative return, log scale: equal vertical distances are equal percentage moves."
+plot_cumulative(returns, benchmark=perf_benchmark, log_scale=True)
+plt.show()
+```
+
+```{python}
+#| label: fig-perf-drawdown
+#| fig-cap: "Drawdown: the fall from the previous peak at each date. The shaded area is the strategy."
+plot_drawdown(returns, benchmark=perf_benchmark)
+plt.show()
+```
+
+```{python}
+#| label: fig-perf-monthly
+#| fig-cap: "Monthly returns of the strategy. The year column has its own color scale."
+plot_monthly_heatmap(returns[perf_strategy])
+plt.show()
+```
+
+```{python}
+#| label: fig-perf-rolling
+#| fig-cap: "Six-month rolling Sharpe ratio (top) and annualized volatility (bottom)."
+#| fig-height: 6
+fig, (ax_top, ax_bottom) = plt.subplots(2, 1, sharex=True, figsize=(9, 6), layout="constrained")
+plot_rolling_sharpe(returns, benchmark=perf_benchmark, ax=ax_top)
+plot_rolling_volatility(returns, benchmark=perf_benchmark, ax=ax_bottom, legend=False)
+plt.show()
+```
