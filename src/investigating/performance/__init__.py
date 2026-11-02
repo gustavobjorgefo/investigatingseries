@@ -12,8 +12,8 @@ Usage in a post::
 Modules:
 
 - ``_analytics`` — the numbers (adapted from ibexQuant, QuantStats conventions).
-- ``table``, ``plots``, ``export`` — the metrics table, the figures and the
-  images for social media (coming in the next steps).
+- ``table`` — the metrics table (raw floats, then formatted strings).
+- ``plots``, ``export`` — the figures and the images for social media (next steps).
 """
 
 from investigating.performance._analytics import (
@@ -42,8 +42,15 @@ from investigating.performance._analytics import (
     to_simple_returns,
     total_return,
 )
+from investigating.performance.table import (
+    METRICS,
+    format_metrics,
+    metrics_table,
+    performance_metrics,
+)
 
 __all__ = [
+    "METRICS",
     "ROLLING_6M",
     "TRADING_DAYS",
     "annualized_volatility",
@@ -54,12 +61,15 @@ __all__ = [
     "drawdown_periods",
     "equity_curve",
     "excess_returns",
+    "format_metrics",
     "hit_rate",
     "kurtosis",
     "longest_drawdown_days",
     "max_drawdown",
+    "metrics_table",
     "monthly_returns_table",
     "period_returns",
+    "performance_metrics",
     "rolling_sharpe",
     "rolling_volatility",
     "sharpe_ratio",
